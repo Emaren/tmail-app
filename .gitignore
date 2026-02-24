@@ -43,3 +43,7 @@ next-env.d.ts
 .direnv/
 .python-version
 venv-logs/
+
+# local helper scripts
+pull-all
+doctor
