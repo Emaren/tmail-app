@@ -15,12 +15,12 @@ export default function StatCard({ title, value, subtext, tone = 'default' }: St
   return (
     <article
       className={[
-        'rounded-[26px] border border-white/10 bg-gradient-to-br p-5 shadow-[0_18px_60px_rgba(0,0,0,0.28)]',
+        'rounded-[26px] border border-white/10 bg-gradient-to-br p-5 shadow-[0_18px_60px_rgba(0,0,0,0.28)] sm:p-6',
         toneClasses[tone],
       ].join(' ')}
     >
       <p className="text-[0.68rem] uppercase tracking-[0.28em] text-slate-300/65">{title}</p>
-      <div className="mt-4 text-4xl font-semibold text-white">{value}</div>
+      <div className="mt-4 text-3xl font-semibold text-white sm:text-4xl">{value}</div>
       {subtext ? <p className="mt-3 text-sm leading-6 text-slate-300/70">{subtext}</p> : null}
     </article>
   );

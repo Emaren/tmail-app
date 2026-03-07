@@ -6,6 +6,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import Panel from '@/components/shell/Panel';
 import StatusPill from '@/components/shell/StatusPill';
 import { getDashboardShellData } from '@/lib/api';
+import { navigationItems } from '@/lib/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,13 +14,31 @@ export default async function DashboardPage() {
   const data = await getDashboardShellData();
 
   return (
-    <div className="space-y-5 pb-10">
+    <div className="space-y-5 pb-12">
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Total opens" value={String(data.overview.totalOpens)} subtext="Soft signal only. Treat clicks and replies as stronger truth." tone="cyan" />
         <StatCard title="Unique IDs" value={String(data.overview.uniqueIds)} subtext="Current tracker history across the active dataset." />
         <StatCard title="Most active identity" value={data.overview.mostActive?.id ?? 'Pending'} subtext={`${data.overview.mostActive?.count ?? 0} logged events`} />
         <StatCard title="Latest open" value={data.overview.latestOpen?.user ?? 'Pending'} subtext={data.overview.latestOpen?.timestamp ?? 'No live signal yet'} tone="amber" />
       </section>
+
+      <Panel title="Castle map" kicker="Every section is routed">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          {navigationItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-[24px] border border-white/8 bg-white/[0.03] px-4 py-4 transition hover:border-cyan-200/20 hover:bg-white/[0.06]"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-base font-semibold text-white">{item.label}</div>
+                <StatusPill label={item.state === 'live' ? 'Live' : 'Staged'} state={item.state === 'live' ? 'healthy' : 'neutral'} />
+              </div>
+              <p className="mt-3 text-sm leading-6 text-slate-300/72">{item.description}</p>
+            </Link>
+          ))}
+        </div>
+      </Panel>
 
       <section className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
         <ChartCard title="Open activity" kicker="Signal history">
@@ -48,7 +67,7 @@ export default async function DashboardPage() {
                     <h3 className="text-lg font-semibold text-white">{message.subject}</h3>
                     <p className="max-w-2xl text-sm leading-6 text-slate-300/72">{message.preview}</p>
                   </div>
-                  <div className="grid grid-cols-4 gap-3 text-right text-sm text-slate-300/72">
+                  <div className="grid grid-cols-2 gap-3 text-left text-sm text-slate-300/72 sm:grid-cols-4 md:text-right">
                     <div>
                       <div className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-400">Recipients</div>
                       <div className="mt-2 text-base text-white">{message.recipients}</div>
@@ -85,7 +104,7 @@ export default async function DashboardPage() {
                     </div>
                     <StatusPill label={identity.health} state={identity.health} />
                   </div>
-                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-slate-300/72">
+                  <div className="mt-4 grid gap-3 text-sm text-slate-300/72 sm:grid-cols-2">
                     <div>
                       <div className="text-[0.64rem] uppercase tracking-[0.2em] text-slate-400">Credential state</div>
                       <div className="mt-2 text-white">{identity.lastSend}</div>
@@ -118,8 +137,8 @@ export default async function DashboardPage() {
 
       <section className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
         <Panel title="Deliverability posture" kicker="Domains and readiness">
-          <div className="overflow-hidden rounded-[24px] border border-white/8">
-            <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto rounded-[24px] border border-white/8">
+            <table className="min-w-[720px] w-full text-left text-sm">
               <thead className="bg-white/[0.04] text-slate-300/70">
                 <tr>
                   <th className="px-4 py-3 font-medium">Domain</th>
@@ -150,11 +169,14 @@ export default async function DashboardPage() {
         <Panel title="Seed lab preview" kicker="Real inboxes, not simulation">
           <div className="space-y-3">
             {data.seedPreview.map((seed) => (
-              <div key={seed.provider} className="grid grid-cols-[1.2fr_repeat(3,1fr)] gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-slate-300/75">
+              <div
+                key={seed.provider}
+                className="grid gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-slate-300/75 sm:grid-cols-[1.2fr_repeat(3,1fr)]"
+              >
                 <div className="font-medium text-white">{seed.provider}</div>
-                <div>{seed.accepted}</div>
-                <div>{seed.placement}</div>
-                <div>{seed.render}</div>
+                <div><span className="text-slate-400 sm:hidden">Accepted: </span>{seed.accepted}</div>
+                <div><span className="text-slate-400 sm:hidden">Placement: </span>{seed.placement}</div>
+                <div><span className="text-slate-400 sm:hidden">Render: </span>{seed.render}</div>
               </div>
             ))}
           </div>
