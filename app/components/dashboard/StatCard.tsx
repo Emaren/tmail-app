@@ -15,7 +15,7 @@ export default function StatCard({ title, value, subtext, tone = 'default' }: St
   return (
     <article
       className={[
-        'rounded-[26px] border border-white/10 bg-gradient-to-br p-5 shadow-[0_18px_60px_rgba(0,0,0,0.28)] sm:p-6',
+        'min-h-[188px] rounded-[26px] border border-white/10 bg-gradient-to-br p-5 shadow-[0_18px_60px_rgba(0,0,0,0.28)] sm:p-6',
         toneClasses[tone],
       ].join(' ')}
     >

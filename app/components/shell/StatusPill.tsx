@@ -10,5 +10,9 @@ export default function StatusPill({ label, state = 'healthy' }: { label: string
           ? 'border-rose-300/20 bg-rose-300/10 text-rose-100'
           : 'border-white/10 bg-white/6 text-slate-200';
 
-  return <span className={`inline-flex rounded-full border px-3 py-1 text-xs uppercase tracking-[0.24em] ${tone}`}>{label}</span>;
+  return (
+    <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-[0.62rem] uppercase tracking-[0.22em] ${tone}`}>
+      {label}
+    </span>
+  );
 }
