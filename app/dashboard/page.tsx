@@ -13,15 +13,15 @@ export default async function DashboardPage() {
   const data = await getDashboardShellData();
 
   return (
-    <div className="space-y-6 pb-12">
-      <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+    <div className="space-y-7 pb-12">
+      <section className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
         <StatCard title="Total opens" value={String(data.overview.totalOpens)} subtext="Soft signal only. Treat clicks and replies as stronger truth." tone="cyan" />
         <StatCard title="Unique IDs" value={String(data.overview.uniqueIds)} subtext="Current tracker history across the active dataset." />
         <StatCard title="Most active identity" value={data.overview.mostActive?.id ?? 'Pending'} subtext={`${data.overview.mostActive?.count ?? 0} logged events`} />
         <StatCard title="Latest open" value={data.overview.latestOpen?.user ?? 'Pending'} subtext={data.overview.latestOpen?.timestamp ?? 'No live signal yet'} tone="amber" />
       </section>
 
-      <section className="grid gap-6 2xl:grid-cols-[1.3fr_1fr]">
+      <section className="grid gap-6 2xl:grid-cols-[1.24fr_0.76fr]">
         <ChartCard title="Open activity" kicker="Signal history">
           <OpensActivityChart data={data.overview.activity} />
         </ChartCard>
@@ -30,14 +30,14 @@ export default async function DashboardPage() {
         </ChartCard>
       </section>
 
-      <section className="grid gap-6 2xl:grid-cols-[1.15fr_0.85fr]">
+      <section className="grid gap-6 2xl:grid-cols-[1.18fr_0.82fr]">
         <Panel title="Recent messages" kicker="Checkpoint queue">
           <div className="space-y-4">
             {data.messages.map((message) => (
               <Link
                 key={message.id}
                 href={`/dashboard/messages/${message.id}`}
-                className="block rounded-[24px] border border-white/8 bg-white/[0.03] p-5 transition hover:border-cyan-200/20 hover:bg-white/[0.05] sm:p-6"
+                className="block rounded-[26px] border border-white/8 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-cyan-200/20 hover:bg-white/[0.05] sm:p-6"
               >
                 <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                   <div className="space-y-3">
@@ -74,9 +74,9 @@ export default async function DashboardPage() {
 
         <div className="space-y-5">
           <Panel title="Identity health" kicker="Trusted rails">
-            <div className="space-y-4">
+            <div className="grid gap-4">
               {data.identities.map((identity) => (
-                <div key={identity.id} className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5 sm:p-6">
+                <div key={identity.id} className="rounded-[25px] border border-white/8 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-[0.68rem] uppercase tracking-[0.28em] text-cyan-200/65">{identity.label}</p>
@@ -103,7 +103,17 @@ export default async function DashboardPage() {
           <Panel title="Alerts rail" kicker="Product truth">
             <div className="space-y-3">
               {data.alerts.map((alert) => (
-                <div key={alert.id} className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4">
+                <div
+                  key={alert.id}
+                  className={[
+                    'rounded-[22px] border p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
+                    alert.level === 'warning'
+                      ? 'border-amber-300/16 bg-amber-300/[0.05]'
+                      : alert.level === 'critical'
+                        ? 'border-rose-300/18 bg-rose-300/[0.05]'
+                        : 'border-white/8 bg-white/[0.035]',
+                  ].join(' ')}
+                >
                   <div className="flex items-center gap-3">
                     <StatusPill label={alert.level} state={alert.level === 'warning' ? 'attention' : alert.level === 'critical' ? 'critical' : 'neutral'} />
                     <h3 className="text-sm font-semibold text-white">{alert.title}</h3>
@@ -116,9 +126,9 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-6 2xl:grid-cols-[1.05fr_0.95fr]">
+      <section className="grid gap-6 2xl:grid-cols-[1.06fr_0.94fr]">
         <Panel title="Deliverability posture" kicker="Domains and readiness">
-          <div className="overflow-x-auto rounded-[24px] border border-white/8">
+          <div className="overflow-x-auto rounded-[26px] border border-white/8 bg-white/[0.025] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <table className="min-w-[720px] w-full text-left text-sm">
               <thead className="bg-white/[0.04] text-slate-300/70">
                 <tr>
@@ -152,7 +162,7 @@ export default async function DashboardPage() {
             {data.seedPreview.map((seed) => (
               <div
                 key={seed.provider}
-                className="grid gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-slate-300/75 sm:grid-cols-[1.2fr_repeat(3,1fr)] sm:items-center"
+                className="grid gap-3 rounded-[22px] border border-white/8 bg-white/[0.035] px-4 py-4 text-sm text-slate-300/75 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:grid-cols-[1.2fr_repeat(3,1fr)] sm:items-center"
               >
                 <div className="font-medium text-white">{seed.provider}</div>
                 <div><span className="text-slate-400 sm:hidden">Accepted: </span>{seed.accepted}</div>

@@ -8,11 +8,11 @@ export default async function DeliverabilityPage() {
   const data = await getDashboardShellData();
 
   return (
-    <div className="grid gap-5 pb-10 xl:grid-cols-[1.05fr_0.95fr]">
+    <div className="grid gap-6 pb-10 2xl:grid-cols-[1.08fr_0.92fr]">
       <Panel title="Deliverability lab" kicker="De-risk, do not pretend to prove">
         <div className="space-y-4">
           {data.domains.map((domain) => (
-            <article key={domain.domain} className="rounded-[26px] border border-white/8 bg-white/[0.03] p-5">
+            <article key={domain.domain} className="rounded-[26px] border border-white/8 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-white">{domain.domain}</h2>
@@ -38,7 +38,7 @@ export default async function DeliverabilityPage() {
         <Panel title="Seed matrix" kicker="Real provider inboxes next">
           <div className="space-y-3 text-sm text-slate-300/76">
             {data.seedPreview.map((seed) => (
-              <div key={seed.provider} className="grid grid-cols-4 gap-3 rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+              <div key={seed.provider} className="grid gap-3 rounded-[22px] border border-white/8 bg-white/[0.035] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:grid-cols-4">
                 <div className="font-medium text-white">{seed.provider}</div>
                 <div>{seed.accepted}</div>
                 <div>{seed.placement}</div>

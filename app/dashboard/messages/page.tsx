@@ -15,7 +15,7 @@ export default async function MessagesPage() {
           <Link
             key={message.id}
             href={`/dashboard/messages/${message.id}`}
-            className="grid gap-4 rounded-[26px] border border-white/8 bg-white/[0.03] p-5 transition hover:border-cyan-200/20 hover:bg-white/[0.05] lg:grid-cols-[1.2fr_0.9fr]"
+            className="grid gap-4 rounded-[26px] border border-white/8 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-cyan-200/20 hover:bg-white/[0.05] lg:grid-cols-[1.2fr_0.9fr]"
           >
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">

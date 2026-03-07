@@ -1,4 +1,16 @@
 export type NavState = 'live' | 'staged';
+export type NavIconName =
+  | 'overview'
+  | 'compose'
+  | 'messages'
+  | 'identities'
+  | 'deliverability'
+  | 'seed-tests'
+  | 'templates'
+  | 'campaigns'
+  | 'contacts'
+  | 'analytics'
+  | 'settings';
 
 export interface NavItem {
   href: string;
@@ -6,6 +18,7 @@ export interface NavItem {
   description: string;
   section: string;
   state: NavState;
+  icon: NavIconName;
 }
 
 export interface NavSection {
@@ -23,6 +36,7 @@ export const navigationSections: NavSection[] = [
         description: 'Top-line performance, readiness, and the current message queue.',
         section: 'Command',
         state: 'live',
+        icon: 'overview',
       },
       {
         href: '/dashboard/compose',
@@ -30,6 +44,7 @@ export const navigationSections: NavSection[] = [
         description: 'Draft, instrument, and send through the active Apple rails.',
         section: 'Command',
         state: 'live',
+        icon: 'compose',
       },
       {
         href: '/dashboard/messages',
@@ -37,6 +52,7 @@ export const navigationSections: NavSection[] = [
         description: 'Inspect event timelines, tracked links, and send outcomes.',
         section: 'Command',
         state: 'live',
+        icon: 'messages',
       },
     ],
   },
@@ -49,6 +65,7 @@ export const navigationSections: NavSection[] = [
         description: 'Manage sender rails, SMTP auth, and tracking defaults.',
         section: 'Infrastructure',
         state: 'live',
+        icon: 'identities',
       },
       {
         href: '/dashboard/deliverability',
@@ -56,6 +73,7 @@ export const navigationSections: NavSection[] = [
         description: 'Check DNS posture, auth health, and readiness signals.',
         section: 'Infrastructure',
         state: 'live',
+        icon: 'deliverability',
       },
       {
         href: '/dashboard/seed-tests',
@@ -63,6 +81,7 @@ export const navigationSections: NavSection[] = [
         description: 'Run real inbox placement checks across provider seed accounts.',
         section: 'Infrastructure',
         state: 'staged',
+        icon: 'seed-tests',
       },
     ],
   },
@@ -75,6 +94,7 @@ export const navigationSections: NavSection[] = [
         description: 'Reusable layouts, snippets, and founder-style message blocks.',
         section: 'Growth',
         state: 'staged',
+        icon: 'templates',
       },
       {
         href: '/dashboard/campaigns',
@@ -82,6 +102,7 @@ export const navigationSections: NavSection[] = [
         description: 'Sequences, batch sends, and follow-up logic across identities.',
         section: 'Growth',
         state: 'staged',
+        icon: 'campaigns',
       },
       {
         href: '/dashboard/contacts',
@@ -89,6 +110,7 @@ export const navigationSections: NavSection[] = [
         description: 'Light CRM records, segments, and engagement context.',
         section: 'Growth',
         state: 'staged',
+        icon: 'contacts',
       },
       {
         href: '/dashboard/analytics',
@@ -96,6 +118,7 @@ export const navigationSections: NavSection[] = [
         description: 'Cross-message performance, link stats, and operator learnings.',
         section: 'Growth',
         state: 'staged',
+        icon: 'analytics',
       },
     ],
   },
@@ -108,6 +131,7 @@ export const navigationSections: NavSection[] = [
         description: 'Environment defaults, operating rules, and next backend milestones.',
         section: 'Control',
         state: 'live',
+        icon: 'settings',
       },
     ],
   },
