@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import RouteIcon from '@/components/layout/RouteIcon';
 import { navigationItems, navigationSections, resolveNavItem } from '@/lib/navigation';
 
@@ -31,6 +32,16 @@ function BrandMark() {
 export default function SidebarNav() {
   const pathname = usePathname();
   const current = resolveNavItem(pathname);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function logout() {
+    setLoggingOut(true);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } finally {
+      window.location.href = '/login';
+    }
+  }
 
   return (
     <>
@@ -160,8 +171,15 @@ export default function SidebarNav() {
         <div className="relative mt-8 rounded-[26px] border border-amber-300/14 bg-[linear-gradient(180deg,rgba(252,211,77,0.07),rgba(8,14,24,0.35))] p-5 text-sm text-slate-200/78">
           <p className="text-[0.66rem] uppercase tracking-[0.28em] text-amber-100/68">Build Mode</p>
           <p className="mt-3 leading-6">
-            Auth, seed testing, and analytics depth are the next structural pieces. The shell is now stable enough to refine without repainting it every checkpoint.
+            Admin auth, templates, and seed lab are now part of the live surface. Campaigns, contacts, and deeper analytics remain the next structural pieces.
           </p>
+          <button
+            onClick={logout}
+            disabled={loggingOut}
+            className="mt-4 inline-flex rounded-full border border-white/10 px-4 py-2 text-sm text-white transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loggingOut ? 'Leaving...' : 'Log out'}
+          </button>
         </div>
       </aside>
     </>

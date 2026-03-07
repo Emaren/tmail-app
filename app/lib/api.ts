@@ -1,4 +1,15 @@
-import { mockAlerts, mockDomainHealth, mockIdentities, mockMessages, mockOverview, mockSeedPreview } from '@/lib/mock-data';
+import { fetchServerJson } from '@/lib/server-api';
+import {
+  mockAlerts,
+  mockDomainHealth,
+  mockIdentities,
+  mockMessages,
+  mockOverview,
+  mockSeedInboxes,
+  mockSeedPreview,
+  mockSeedRuns,
+  mockTemplates,
+} from '@/lib/mock-data';
 import {
   AlertItem,
   DashboardOverview,
@@ -6,14 +17,20 @@ import {
   DomainHealth,
   IdentitySummary,
   MessageDetail,
+  MessageStatus,
   MessageSummary,
   OpenEvent,
+  SeedInboxSummary,
   SeedPreview,
+  SeedTestResult,
+  SeedTestRunDetail,
+  SeedTestRunSummary,
+  TemplateSummary,
   TopUser,
   TrackedLink,
 } from '@/lib/types';
 
-const serverApiBase = process.env.TMAIL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? '';
+const CLIENT_API_BASE = '/api/proxy';
 
 interface StatsResponse {
   total_opens?: number;
@@ -48,7 +65,7 @@ interface MessageResponse {
   subject?: string;
   preview?: string;
   identity?: string;
-  status?: MessageSummary['status'];
+  status?: MessageStatus;
   recipient_count?: number;
   sent_at?: string | null;
   created_at?: string;
@@ -66,8 +83,68 @@ interface MessageResponse {
   events?: Array<{ id?: string; type?: string; occurred_at?: string; payload?: Record<string, unknown> }>;
 }
 
+interface TemplateResponse {
+  id: string;
+  name?: string;
+  slug?: string;
+  category?: string;
+  description?: string;
+  subject?: string;
+  preheader?: string;
+  html_body?: string;
+  text_body?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface SeedInboxResponse {
+  id: string;
+  provider?: string;
+  label?: string;
+  email_address?: string;
+  notes?: string;
+  enabled?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface SeedResultResponse {
+  id?: string;
+  seed_inbox_id?: string;
+  provider?: string;
+  label?: string;
+  email_address?: string;
+  accepted?: boolean | null;
+  placement?: string;
+  render_status?: string;
+  notes?: string;
+  checked_at?: string | null;
+  updated_at?: string;
+}
+
+interface SeedRunResponse {
+  id: string;
+  identity_id?: string;
+  identity?: string;
+  identity_label?: string;
+  message_id?: string | null;
+  template_id?: string | null;
+  subject?: string;
+  status?: string;
+  summary?: string;
+  result_count?: number;
+  completed_count?: number;
+  inbox_count?: number;
+  spam_count?: number;
+  created_at?: string;
+  updated_at?: string;
+  sent_at?: string | null;
+  results?: SeedResultResponse[];
+}
+
 interface DashboardSummaryResponse {
-  overview?: StatsResponse;
+  overview?: StatsResponse | null;
   messages?: MessageResponse[];
   identities?: IdentityResponse[];
   domains?: Array<{
@@ -81,27 +158,7 @@ interface DashboardSummaryResponse {
     last_checked_at?: string;
   }>;
   alerts?: AlertItem[];
-}
-
-async function fetchApi<T>(path: string): Promise<T | null> {
-  if (!serverApiBase) {
-    return null;
-  }
-
-  try {
-    const response = await fetch(`${serverApiBase}${path}`, {
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return (await response.json()) as T;
-  } catch {
-    return null;
-  }
+  seed_preview?: Array<{ provider?: string; accepted?: string; placement?: string; render?: string }>;
 }
 
 function normalizeTopUsers(topUsers: StatsResponse['top_users']): TopUser[] {
@@ -240,8 +297,101 @@ function normalizeTrackedLinks(links?: MessageResponse['tracked_links']): Tracke
   );
 }
 
+function normalizeTemplate(item: TemplateResponse): TemplateSummary {
+  return {
+    id: item.id,
+    name: item.name ?? 'Untitled template',
+    slug: item.slug ?? item.id,
+    category: item.category ?? 'General',
+    description: item.description ?? '',
+    subject: item.subject ?? '',
+    preheader: item.preheader ?? '',
+    htmlBody: item.html_body ?? '',
+    textBody: item.text_body ?? '',
+    isActive: item.is_active ?? true,
+    createdAt: item.created_at ?? new Date().toISOString(),
+    updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeSeedPreview(items?: DashboardSummaryResponse['seed_preview']): SeedPreview[] {
+  if (!Array.isArray(items) || !items.length) {
+    return mockSeedPreview;
+  }
+
+  return items.flatMap((item) =>
+    item.provider
+      ? [
+          {
+            provider: item.provider,
+            accepted: item.accepted ?? 'Pending',
+            placement: item.placement ?? 'Pending',
+            render: item.render ?? 'Pending',
+          },
+        ]
+      : [],
+  );
+}
+
+function normalizeSeedInbox(item: SeedInboxResponse): SeedInboxSummary {
+  return {
+    id: item.id,
+    provider: item.provider ?? 'Unknown',
+    label: item.label ?? 'Seed inbox',
+    emailAddress: item.email_address ?? '',
+    notes: item.notes ?? '',
+    enabled: item.enabled ?? false,
+    createdAt: item.created_at ?? new Date().toISOString(),
+    updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeSeedResult(item: SeedResultResponse): SeedTestResult {
+  return {
+    id: item.id ?? `result-${item.seed_inbox_id ?? 'unknown'}`,
+    seedInboxId: item.seed_inbox_id ?? 'seed-unknown',
+    provider: item.provider ?? 'Unknown',
+    label: item.label ?? 'Seed inbox',
+    emailAddress: item.email_address ?? '',
+    accepted: item.accepted ?? null,
+    placement: item.placement ?? 'pending',
+    renderStatus: item.render_status ?? 'pending',
+    notes: item.notes ?? '',
+    checkedAt: item.checked_at ?? null,
+    updatedAt: item.updated_at ?? item.checked_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeSeedRun(item: SeedRunResponse): SeedTestRunSummary {
+  return {
+    id: item.id,
+    identityId: item.identity_id ?? '',
+    identity: item.identity ?? 'unknown',
+    identityLabel: item.identity_label ?? 'Identity',
+    messageId: item.message_id ?? null,
+    templateId: item.template_id ?? null,
+    subject: item.subject ?? 'Untitled seed run',
+    status: item.status ?? 'pending',
+    summary: item.summary ?? 'Awaiting seed results.',
+    resultCount: item.result_count ?? 0,
+    completedCount: item.completed_count ?? 0,
+    inboxCount: item.inbox_count ?? 0,
+    spamCount: item.spam_count ?? 0,
+    createdAt: item.created_at ?? new Date().toISOString(),
+    updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+    sentAt: item.sent_at ?? null,
+  };
+}
+
+function normalizeSeedRunDetail(item: SeedRunResponse): SeedTestRunDetail {
+  return {
+    ...normalizeSeedRun(item),
+    results: Array.isArray(item.results) ? item.results.map(normalizeSeedResult) : [],
+  };
+}
+
 export async function getDashboardShellData(): Promise<DashboardShellData> {
-  const payload = await fetchApi<DashboardSummaryResponse>('/dashboard/summary');
+  const payload = await fetchServerJson<DashboardSummaryResponse>('/dashboard/summary');
 
   if (!payload) {
     return {
@@ -278,12 +428,12 @@ export async function getDashboardShellData(): Promise<DashboardShellData> {
           )
         : mockDomainHealth,
     alerts: Array.isArray(payload.alerts) && payload.alerts.length ? payload.alerts : mockAlerts,
-    seedPreview: mockSeedPreview,
+    seedPreview: normalizeSeedPreview(payload.seed_preview),
   };
 }
 
 export async function getMessages(): Promise<MessageSummary[]> {
-  const payload = await fetchApi<{ items?: MessageResponse[] }>('/messages');
+  const payload = await fetchServerJson<{ items?: MessageResponse[] }>('/messages');
   if (!payload?.items?.length) {
     return mockMessages;
   }
@@ -291,7 +441,7 @@ export async function getMessages(): Promise<MessageSummary[]> {
 }
 
 export async function getMessageDetail(messageId: string): Promise<MessageDetail | null> {
-  const payload = await fetchApi<MessageResponse>(`/messages/${messageId}`);
+  const payload = await fetchServerJson<MessageResponse>(`/messages/${messageId}`);
   if (!payload) {
     return buildMockMessageDetail(messageId);
   }
@@ -322,13 +472,42 @@ export async function getMessageDetail(messageId: string): Promise<MessageDetail
 }
 
 export async function getIdentities(): Promise<IdentitySummary[]> {
-  const payload = await fetchApi<{ items?: IdentityResponse[] }>('/identities');
+  const payload = await fetchServerJson<{ items?: IdentityResponse[] }>('/identities');
   if (!payload?.items?.length) {
     return mockIdentities;
   }
   return payload.items.map(normalizeIdentity);
 }
 
+export async function getTemplates(): Promise<TemplateSummary[]> {
+  const payload = await fetchServerJson<{ items?: TemplateResponse[] }>('/templates');
+  if (!payload?.items?.length) {
+    return mockTemplates;
+  }
+  return payload.items.map(normalizeTemplate);
+}
+
+export async function getSeedInboxes(): Promise<SeedInboxSummary[]> {
+  const payload = await fetchServerJson<{ items?: SeedInboxResponse[] }>('/seed-tests/inboxes');
+  if (!payload?.items?.length) {
+    return mockSeedInboxes;
+  }
+  return payload.items.map(normalizeSeedInbox);
+}
+
+export async function getSeedRuns(): Promise<SeedTestRunSummary[]> {
+  const payload = await fetchServerJson<{ items?: SeedRunResponse[] }>('/seed-tests/runs');
+  if (!payload?.items?.length) {
+    return mockSeedRuns;
+  }
+  return payload.items.map(normalizeSeedRun);
+}
+
+export async function getSeedRun(runId: string): Promise<SeedTestRunDetail | null> {
+  const payload = await fetchServerJson<SeedRunResponse>(`/seed-tests/runs/${runId}`);
+  return payload ? normalizeSeedRunDetail(payload) : null;
+}
+
 export function getClientApiBase(): string {
-  return process.env.NEXT_PUBLIC_API_URL ?? '';
+  return CLIENT_API_BASE;
 }

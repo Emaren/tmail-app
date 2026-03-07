@@ -6,6 +6,11 @@ import { resolveNavItem } from '@/lib/navigation';
 
 const liveSignals = [
   {
+    label: 'Access',
+    value: 'Admin auth active',
+    note: 'Dashboard writes now route through the signed session and internal proxy layer.',
+  },
+  {
     label: 'Sending rail',
     value: 'Apple SMTP live',
     note: 'Founder and brand identities are authenticated through Apple.',
@@ -14,11 +19,6 @@ const liveSignals = [
     label: 'Tracking base',
     value: 'Public endpoint live',
     note: 'Open and click events resolve through api.tmail.tokentap.ca.',
-  },
-  {
-    label: 'Deployment',
-    value: 'VPS checkpoint',
-    note: 'Dashboard and API are running on the current production server.',
   },
 ];
 

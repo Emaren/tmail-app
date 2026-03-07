@@ -1,6 +1,8 @@
 import { ReactNode } from 'react';
 import AppShell from '@/components/layout/AppShell';
+import { requireSession } from '@/lib/auth';
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
+  await requireSession();
   return <AppShell>{children}</AppShell>;
 }

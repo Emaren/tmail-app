@@ -4,7 +4,10 @@ import {
   DomainHealth,
   IdentitySummary,
   MessageSummary,
+  SeedInboxSummary,
   SeedPreview,
+  SeedTestRunSummary,
+  TemplateSummary,
 } from '@/lib/types';
 
 export const mockOverview: DashboardOverview = {
@@ -96,7 +99,7 @@ export const mockIdentities: IdentitySummary[] = [
     label: 'Brand Rail',
     address: 'info@wheatandstone.ca',
     provider: 'Apple Custom Domain',
-    health: 'attention',
+    health: 'healthy',
     lastSend: '2026-03-07 08:25',
     clickRate: 'Pending',
     replyRate: 'Pending',
@@ -118,31 +121,126 @@ export const mockDomainHealth: DomainHealth[] = [
     domain: 'wheatandstone.ca',
     spf: 'pass',
     dkim: 'pass',
-    dmarc: 'warn',
+    dmarc: 'pass',
     mx: 'pass',
-    readiness: 'Good rail, but seed inbox suite should be part of every checkpoint',
-    notes: 'Custom-domain alignment needs ongoing verification before campaigns.',
+    readiness: 'Healthy authentication baseline for tracked sends.',
+    notes: 'Custom-domain rail aligned through iCloud Mail.',
   },
 ];
 
 export const mockAlerts: AlertItem[] = [
   {
-    id: 'alert-api-contract',
-    level: 'warning',
-    title: 'Analytics contract still thin',
-    body: 'Dashboard shell is ahead of the API model. Messages, identities, and deliverability will move into persistent storage next.',
+    id: 'alert-auth',
+    level: 'info',
+    title: 'Admin auth layer active',
+    body: 'Dashboard access now sits behind the TMail admin session and same-origin proxy.',
   },
   {
     id: 'alert-seeds',
     level: 'info',
-    title: 'Seed inbox lab not wired yet',
-    body: 'The UI now reserves space for real provider seeds. Gmail, Outlook, Yahoo, and iCloud accounts should back the next phase.',
+    title: 'Seed lab needs real inboxes',
+    body: 'Configure real Gmail, Outlook, Yahoo, and iCloud addresses to turn the seed matrix into a real inbox-placement workflow.',
   },
 ];
 
 export const mockSeedPreview: SeedPreview[] = [
   { provider: 'Gmail', accepted: 'Yes', placement: 'Inbox', render: 'Clean' },
   { provider: 'Outlook', accepted: 'Yes', placement: 'Pending', render: 'Pending' },
-  { provider: 'Yahoo', accepted: 'Planned', placement: 'Planned', render: 'Planned' },
-  { provider: 'iCloud', accepted: 'Planned', placement: 'Planned', render: 'Planned' },
+  { provider: 'Yahoo', accepted: 'Pending', placement: 'Pending', render: 'Pending' },
+  { provider: 'iCloud', accepted: 'Pending', placement: 'Pending', render: 'Pending' },
+];
+
+export const mockTemplates: TemplateSummary[] = [
+  {
+    id: 'tpl-founder-note',
+    name: 'Founder Note',
+    slug: 'founder-note',
+    category: 'Founder',
+    description: 'A short founder note with a clean CTA and direct tone.',
+    subject: 'Quick founder note from Tony',
+    preheader: 'A short, direct note sent through TMail.',
+    htmlBody: '<html><body><p>Hey there,</p><p>I wanted to send a quick note directly and keep it simple.</p><p><a href="https://wheatandstone.ca">Open the destination page</a></p><p>Tony</p></body></html>',
+    textBody: 'Hey there,\n\nI wanted to send a quick note directly and keep it simple.\n\nOpen the destination page: https://wheatandstone.ca\n\nTony',
+    isActive: true,
+    createdAt: '2026-03-07T00:00:00Z',
+    updatedAt: '2026-03-07T00:00:00Z',
+  },
+  {
+    id: 'tpl-seed-lab',
+    name: 'Seed Lab Probe',
+    slug: 'seed-lab-probe',
+    category: 'Testing',
+    description: 'Minimal test message for inbox placement checks and render verification.',
+    subject: 'TMail seed test probe',
+    preheader: 'Seed inbox validation run from TMail.',
+    htmlBody: '<html><body><p>This is a TMail seed test probe.</p><p><a href="https://api.tmail.tokentap.ca/api/health">Check the API health endpoint</a></p></body></html>',
+    textBody: 'This is a TMail seed test probe.\n\nCheck the API health endpoint: https://api.tmail.tokentap.ca/api/health',
+    isActive: true,
+    createdAt: '2026-03-07T00:00:00Z',
+    updatedAt: '2026-03-07T00:00:00Z',
+  },
+];
+
+export const mockSeedInboxes: SeedInboxSummary[] = [
+  {
+    id: 'seed-gmail',
+    provider: 'Gmail',
+    label: 'Gmail Primary',
+    emailAddress: '',
+    notes: 'Configure a real Gmail seed inbox before enabling.',
+    enabled: false,
+    createdAt: '2026-03-07T00:00:00Z',
+    updatedAt: '2026-03-07T00:00:00Z',
+  },
+  {
+    id: 'seed-outlook',
+    provider: 'Outlook',
+    label: 'Outlook Primary',
+    emailAddress: '',
+    notes: 'Configure a real Outlook seed inbox before enabling.',
+    enabled: false,
+    createdAt: '2026-03-07T00:00:00Z',
+    updatedAt: '2026-03-07T00:00:00Z',
+  },
+  {
+    id: 'seed-yahoo',
+    provider: 'Yahoo',
+    label: 'Yahoo Primary',
+    emailAddress: '',
+    notes: 'Configure a real Yahoo seed inbox before enabling.',
+    enabled: false,
+    createdAt: '2026-03-07T00:00:00Z',
+    updatedAt: '2026-03-07T00:00:00Z',
+  },
+  {
+    id: 'seed-icloud',
+    provider: 'iCloud',
+    label: 'iCloud Primary',
+    emailAddress: '',
+    notes: 'Configure a real iCloud seed inbox before enabling.',
+    enabled: false,
+    createdAt: '2026-03-07T00:00:00Z',
+    updatedAt: '2026-03-07T00:00:00Z',
+  },
+];
+
+export const mockSeedRuns: SeedTestRunSummary[] = [
+  {
+    id: 'seedrun-demo',
+    identityId: 'ws-info',
+    identity: 'info@wheatandstone.ca',
+    identityLabel: 'Brand Rail',
+    messageId: 'msg-ws-seed',
+    templateId: 'tpl-seed-lab',
+    subject: 'TMail seed test probe',
+    status: 'in_review',
+    summary: '1/4 seed results recorded. 1 inbox, 0 spam.',
+    resultCount: 4,
+    completedCount: 1,
+    inboxCount: 1,
+    spamCount: 0,
+    createdAt: '2026-03-07T08:25:00Z',
+    updatedAt: '2026-03-07T08:40:00Z',
+    sentAt: '2026-03-07T08:25:00Z',
+  },
 ];

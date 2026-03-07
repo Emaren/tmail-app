@@ -80,7 +80,7 @@ export const navigationSections: NavSection[] = [
         label: 'Seed Tests',
         description: 'Run real inbox placement checks across provider seed accounts.',
         section: 'Infrastructure',
-        state: 'staged',
+        state: 'live',
         icon: 'seed-tests',
       },
     ],
@@ -93,7 +93,7 @@ export const navigationSections: NavSection[] = [
         label: 'Templates',
         description: 'Reusable layouts, snippets, and founder-style message blocks.',
         section: 'Growth',
-        state: 'staged',
+        state: 'live',
         icon: 'templates',
       },
       {

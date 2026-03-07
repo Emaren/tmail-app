@@ -145,8 +145,8 @@ export default function IdentityManager({ identities, apiBase }: IdentityManager
     if (!apiBase) {
       setFeedback({
         tone: 'attention',
-        title: 'API base URL missing',
-        body: 'Set NEXT_PUBLIC_API_URL before saving or testing sender identities from the browser.',
+        title: 'Admin proxy unavailable',
+        body: 'The protected dashboard proxy is unavailable, so the sender rail could not be saved.',
       });
       return;
     }
@@ -208,8 +208,8 @@ export default function IdentityManager({ identities, apiBase }: IdentityManager
     if (!apiBase) {
       setFeedback({
         tone: 'attention',
-        title: 'API base URL missing',
-        body: 'Set NEXT_PUBLIC_API_URL before running browser-triggered connection tests.',
+        title: 'Admin proxy unavailable',
+        body: 'The protected dashboard proxy is unavailable, so the connection test could not run.',
       });
       return;
     }

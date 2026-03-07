@@ -1,4 +1,5 @@
 export type HealthState = 'healthy' | 'attention' | 'critical';
+export type MessageStatus = 'Draft' | 'Queued' | 'Scheduled' | 'Sent' | 'Needs Review';
 
 export interface TopUser {
   id: string;
@@ -30,7 +31,7 @@ export interface MessageSummary {
   subject: string;
   preview: string;
   identity: string;
-  status: 'Draft' | 'Scheduled' | 'Sent' | 'Needs Review';
+  status: MessageStatus;
   recipients: number;
   sentAt: string;
   opens: number;
@@ -118,4 +119,67 @@ export interface DashboardShellData {
   domains: DomainHealth[];
   alerts: AlertItem[];
   seedPreview: SeedPreview[];
+}
+
+export interface TemplateSummary {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  description: string;
+  subject: string;
+  preheader: string;
+  htmlBody: string;
+  textBody: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SeedInboxSummary {
+  id: string;
+  provider: string;
+  label: string;
+  emailAddress: string;
+  notes: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SeedTestResult {
+  id: string;
+  seedInboxId: string;
+  provider: string;
+  label: string;
+  emailAddress: string;
+  accepted: boolean | null;
+  placement: string;
+  renderStatus: string;
+  notes: string;
+  checkedAt?: string | null;
+  updatedAt: string;
+}
+
+export interface SeedTestRunSummary {
+  id: string;
+  identityId: string;
+  identity: string;
+  identityLabel: string;
+  messageId?: string | null;
+  templateId?: string | null;
+  subject: string;
+  status: string;
+  summary: string;
+  resultCount: number;
+  completedCount: number;
+  inboxCount: number;
+  spamCount: number;
+  createdAt: string;
+  updatedAt: string;
+  sentAt?: string | null;
+}
+
+export interface SeedTestRunDetail extends SeedTestRunSummary {
+  results: SeedTestResult[];
 }

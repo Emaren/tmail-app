@@ -1,13 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Panel from '@/components/shell/Panel';
 import StatusPill from '@/components/shell/StatusPill';
-import { IdentitySummary } from '@/lib/types';
+import { IdentitySummary, TemplateSummary } from '@/lib/types';
 
 interface ComposeWorkbenchProps {
   identities: IdentitySummary[];
+  templates: TemplateSummary[];
   apiBase: string;
 }
 
@@ -33,16 +34,24 @@ interface PreflightResult {
   };
 }
 
-export default function ComposeWorkbench({ identities, apiBase }: ComposeWorkbenchProps) {
+function buildInitialTemplate(templates: TemplateSummary[]): TemplateSummary | null {
+  return templates.find((template) => template.isActive) ?? templates[0] ?? null;
+}
+
+export default function ComposeWorkbench({ identities, templates, apiBase }: ComposeWorkbenchProps) {
+  const initialTemplate = useMemo(() => buildInitialTemplate(templates), [templates]);
   const [selectedIdentity, setSelectedIdentity] = useState(identities[0]?.id ?? '');
+  const [selectedTemplateId, setSelectedTemplateId] = useState(initialTemplate?.id ?? '');
   const [recipients, setRecipients] = useState('seed@example.com');
-  const [subject, setSubject] = useState('Wheat & Stone founder note, now instrumented through TMail');
-  const [preheader, setPreheader] = useState('Compose in TMail. Validate in TMail. Send through Apple.');
+  const [subject, setSubject] = useState(initialTemplate?.subject ?? 'Wheat & Stone founder note, now instrumented through TMail');
+  const [preheader, setPreheader] = useState(initialTemplate?.preheader ?? 'Compose in TMail. Validate in TMail. Send through Apple.');
   const [htmlBody, setHtmlBody] = useState(
-    '<html><body><p>Hey there,</p><p>This is the rebuilt TMail compose experience taking shape. The goal is a clean founder-style message with stronger instrumentation and a deliverability checkpoint before every send.</p><p><a href="https://wheatandstone.ca">See the destination page</a></p></body></html>',
+    initialTemplate?.htmlBody ??
+      '<html><body><p>Hey there,</p><p>This is the rebuilt TMail compose experience taking shape. The goal is a clean founder-style message with stronger instrumentation and a deliverability checkpoint before every send.</p><p><a href="https://wheatandstone.ca">See the destination page</a></p></body></html>',
   );
   const [textBody, setTextBody] = useState(
-    'Hey there,\n\nThis is the rebuilt TMail compose flow. The next backend pass will let this draft render into a real Apple SMTP send with tracked links, optional pixel injection, and a per-message timeline.',
+    initialTemplate?.textBody ??
+      'Hey there,\n\nThis is the rebuilt TMail compose flow. The next backend pass will let this draft render into a real Apple SMTP send with tracked links, optional pixel injection, and a per-message timeline.',
   );
   const [trackingEnabled, setTrackingEnabled] = useState(true);
   const [pixelEnabled, setPixelEnabled] = useState(true);
@@ -57,12 +66,24 @@ export default function ComposeWorkbench({ identities, apiBase }: ComposeWorkben
     }
   }, [identities, selectedIdentity]);
 
-  useEffect(() => {
-    if (!apiBase) {
-      setPreflight(null);
+  function applyTemplate() {
+    const template = templates.find((item) => item.id === selectedTemplateId);
+    if (!template) {
       return;
     }
 
+    setSubject(template.subject);
+    setPreheader(template.preheader);
+    setHtmlBody(template.htmlBody);
+    setTextBody(template.textBody);
+    setFeedback({
+      tone: 'healthy',
+      title: 'Template loaded',
+      body: `${template.name} is now loaded into the compose workbench.`,
+    });
+  }
+
+  useEffect(() => {
     const controller = new AbortController();
     const timeout = window.setTimeout(async () => {
       setPreflightPending(true);
@@ -107,15 +128,6 @@ export default function ComposeWorkbench({ identities, apiBase }: ComposeWorkben
   }, [apiBase, htmlBody, pixelEnabled, preheader, recipients, selectedIdentity, subject, textBody, trackingEnabled]);
 
   async function submit(action: ActionType) {
-    if (!apiBase) {
-      setFeedback({
-        tone: 'attention',
-        title: 'API base URL missing',
-        body: 'Set NEXT_PUBLIC_API_URL to the TMail API origin before using draft/save/send actions.',
-      });
-      return;
-    }
-
     setPendingAction(action);
     setFeedback(null);
 
@@ -136,7 +148,7 @@ export default function ComposeWorkbench({ identities, apiBase }: ComposeWorkben
         }),
       });
 
-      const payload = await response.json();
+      const payload = (await response.json()) as { status?: string; preview?: string; error_message?: string; error?: string; id?: string };
       if (!response.ok) {
         throw new Error(payload.error ?? 'Request failed');
       }
@@ -163,32 +175,65 @@ export default function ComposeWorkbench({ identities, apiBase }: ComposeWorkben
 
   return (
     <div className="grid gap-6 pb-12 2xl:grid-cols-[1.12fr_0.88fr]">
-      <Panel title="Compose" kicker="Phase 1 live workbench">
+      <Panel title="Compose" kicker="Protected workbench">
         <div className="space-y-5">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <label className="space-y-2 text-sm text-slate-300/78">
-              <span className="text-[0.7rem] uppercase tracking-[0.26em] text-slate-400">Sender identity</span>
-              <select
-                value={selectedIdentity}
-                onChange={(event) => setSelectedIdentity(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none"
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+            <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
+              <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+                <label className="space-y-2 text-sm text-slate-300/78">
+                  <span className="text-[0.7rem] uppercase tracking-[0.26em] text-slate-400">Sender identity</span>
+                  <select
+                    value={selectedIdentity}
+                    onChange={(event) => setSelectedIdentity(event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none"
+                  >
+                    {identities.map((identity) => (
+                      <option key={identity.id} value={identity.id}>
+                        {identity.address}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="space-y-2 text-sm text-slate-300/78">
+                  <span className="text-[0.7rem] uppercase tracking-[0.26em] text-slate-400">Template source</span>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(event) => setSelectedTemplateId(event.target.value)}
+                    className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none"
+                  >
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              <button
+                onClick={applyTemplate}
+                className="rounded-[24px] border border-cyan-300/22 bg-cyan-300/12 px-5 py-4 text-sm font-medium text-white transition hover:bg-cyan-300/16"
               >
-                {identities.map((identity) => (
-                  <option key={identity.id} value={identity.id}>
-                    {identity.address}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-2 text-sm text-slate-300/78">
-              <span className="text-[0.7rem] uppercase tracking-[0.26em] text-slate-400">Recipients</span>
-              <input
-                value={recipients}
-                onChange={(event) => setRecipients(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500"
-              />
-            </label>
+                Load template
+              </button>
+              <Link
+                href="/dashboard/templates"
+                className="rounded-[24px] border border-white/10 bg-white/[0.04] px-5 py-4 text-sm font-medium text-white transition hover:bg-white/[0.07]"
+              >
+                Manage templates
+              </Link>
+            </div>
           </div>
+
+          <label className="space-y-2 text-sm text-slate-300/78">
+            <span className="text-[0.7rem] uppercase tracking-[0.26em] text-slate-400">Recipients</span>
+            <input
+              value={recipients}
+              onChange={(event) => setRecipients(event.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500"
+            />
+          </label>
 
           <label className="space-y-2 text-sm text-slate-300/78">
             <span className="text-[0.7rem] uppercase tracking-[0.26em] text-slate-400">Subject</span>
@@ -214,7 +259,7 @@ export default function ComposeWorkbench({ identities, apiBase }: ComposeWorkben
               rows={14}
               value={htmlBody}
               onChange={(event) => setHtmlBody(event.target.value)}
-              className="w-full rounded-[24px] border border-white/10 bg-white/5 px-4 py-4 text-white outline-none placeholder:text-slate-500"
+              className="w-full rounded-[24px] border border-white/10 bg-white/5 px-4 py-4 font-mono text-[0.92rem] text-white outline-none placeholder:text-slate-500"
             />
           </label>
 
@@ -224,7 +269,7 @@ export default function ComposeWorkbench({ identities, apiBase }: ComposeWorkben
               rows={8}
               value={textBody}
               onChange={(event) => setTextBody(event.target.value)}
-              className="w-full rounded-[24px] border border-white/10 bg-white/5 px-4 py-4 text-white outline-none placeholder:text-slate-500"
+              className="w-full rounded-[24px] border border-white/10 bg-white/5 px-4 py-4 font-mono text-[0.92rem] text-white outline-none placeholder:text-slate-500"
             />
           </label>
 
@@ -252,22 +297,16 @@ export default function ComposeWorkbench({ identities, apiBase }: ComposeWorkben
               <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <StatusPill
-                    label={
-                      !apiBase ? 'API missing' : preflightPending ? 'Checking' : preflight?.status === 'blocked' ? 'Blocked' : preflight?.status === 'warning' ? 'Warnings' : 'Ready'
-                    }
-                    state={
-                      !apiBase ? 'attention' : preflight?.status === 'blocked' ? 'critical' : preflight?.status === 'warning' ? 'attention' : 'healthy'
-                    }
+                    label={preflightPending ? 'Checking' : preflight?.status === 'blocked' ? 'Blocked' : preflight?.status === 'warning' ? 'Warnings' : 'Ready'}
+                    state={preflight?.status === 'blocked' ? 'critical' : preflight?.status === 'warning' ? 'attention' : 'healthy'}
                   />
                   <StatusPill label={trackingEnabled ? 'Tracked links on' : 'Tracking off'} state={trackingEnabled ? 'healthy' : 'attention'} />
-                  <StatusPill label={pixelEnabled ? 'Soft open on' : 'Soft open off'} state={pixelEnabled ? 'neutral' : 'neutral'} />
+                  <StatusPill label={pixelEnabled ? 'Soft open on' : 'Soft open off'} state="neutral" />
                 </div>
                 <p className="mt-4 text-sm leading-6 text-slate-300/76">
-                  {!apiBase
-                    ? 'Set NEXT_PUBLIC_API_URL to enable backend preflight analysis.'
-                    : preflightPending
-                      ? 'Running draft checks against the live deliverability service.'
-                      : preflight?.summary ?? 'Awaiting preflight result.'}
+                  {preflightPending
+                    ? 'Running draft checks against the live deliverability service.'
+                    : preflight?.summary ?? 'Awaiting preflight result.'}
                 </p>
               </div>
             </div>
@@ -347,7 +386,7 @@ export default function ComposeWorkbench({ identities, apiBase }: ComposeWorkben
         </Panel>
 
         {feedback ? (
-          <Panel title={feedback.title} kicker="API response">
+          <Panel title={feedback.title} kicker="Workbench response">
             <div className="space-y-4 text-sm leading-6 text-slate-300/76">
               <StatusPill label={feedback.tone} state={feedback.tone} />
               <p>{feedback.body}</p>
@@ -360,12 +399,12 @@ export default function ComposeWorkbench({ identities, apiBase }: ComposeWorkben
           </Panel>
         ) : null}
 
-        <Panel title="Phase 1 truth" kicker="What this now does">
+        <Panel title="Operator truth" kicker="What this now does">
           <ul className="space-y-3 text-sm leading-6 text-slate-300/74">
-            <li>Stores drafts in the API-backed message repository.</li>
-            <li>Attempts Apple SMTP sends through env-backed identity credentials.</li>
-            <li>Instruments tracked links and optional pixel URLs before send.</li>
-            <li>Records event timelines even when a send fails cleanly.</li>
+            <li>Loads reusable templates into the real compose flow instead of keeping Templates as a dead staging page.</li>
+            <li>Runs preflight analysis through the locked-down backend before every send.</li>
+            <li>Stores drafts and sends through the same protected proxy path the rest of the dashboard uses.</li>
+            <li>Leaves tracking public only where it must stay public: pixel and click rails.</li>
           </ul>
         </Panel>
       </div>
