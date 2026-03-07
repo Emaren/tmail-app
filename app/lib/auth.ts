@@ -4,10 +4,34 @@ import { redirect } from 'next/navigation';
 
 export const SESSION_COOKIE_NAME = 'tmail_admin_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
+const LOGIN_WINDOW_SECONDS = 60 * 10;
+const LOGIN_LOCK_SECONDS = 60 * 15;
+const MAX_LOGIN_ATTEMPTS = 5;
 
 export interface AdminSession {
   username: string;
   exp: number;
+}
+
+export interface LoginThrottleState {
+  allowed: boolean;
+  retryAfterSeconds: number;
+  remainingAttempts: number;
+}
+
+interface LoginAttemptState {
+  failures: number[];
+  lockedUntil: number;
+}
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __tmailLoginAttempts: Map<string, LoginAttemptState> | undefined;
+}
+
+const loginAttempts = globalThis.__tmailLoginAttempts ?? new Map<string, LoginAttemptState>();
+if (!globalThis.__tmailLoginAttempts) {
+  globalThis.__tmailLoginAttempts = loginAttempts;
 }
 
 function getAuthConfig() {
@@ -30,6 +54,29 @@ function sign(data: string, secret: string) {
   return createHmac('sha256', secret).update(data).digest('base64url');
 }
 
+function safeCompare(left: string, right: string) {
+  const leftDigest = createHmac('sha256', 'tmail-compare').update(left).digest();
+  const rightDigest = createHmac('sha256', 'tmail-compare').update(right).digest();
+  return timingSafeEqual(leftDigest, rightDigest);
+}
+
+function normalizeLoginAttempts(identifier: string) {
+  const now = Date.now();
+  const state = loginAttempts.get(identifier) ?? { failures: [], lockedUntil: 0 };
+  state.failures = state.failures.filter((timestamp) => timestamp > now - (LOGIN_WINDOW_SECONDS * 1000));
+  if (state.lockedUntil <= now) {
+    state.lockedUntil = 0;
+  }
+
+  if (!state.failures.length && !state.lockedUntil) {
+    loginAttempts.delete(identifier);
+    return { failures: [], lockedUntil: 0 };
+  }
+
+  loginAttempts.set(identifier, state);
+  return state;
+}
+
 export function isAuthConfigured() {
   const config = getAuthConfig();
   return Boolean(config.password && config.secret);
@@ -37,7 +84,7 @@ export function isAuthConfigured() {
 
 export function validateAdminCredentials(username: string, password: string) {
   const config = getAuthConfig();
-  return isAuthConfigured() && username === config.username && password === config.password;
+  return isAuthConfigured() && safeCompare(username, config.username) && safeCompare(password, config.password);
 }
 
 export function createSessionToken(username: string) {
@@ -104,9 +151,10 @@ export function buildSessionCookie(token: string) {
     value: token,
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
+    sameSite: 'strict' as const,
     path: '/',
     maxAge: SESSION_TTL_SECONDS,
+    priority: 'high' as const,
   };
 }
 
@@ -116,8 +164,42 @@ export function clearSessionCookie() {
     value: '',
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax' as const,
+    sameSite: 'strict' as const,
     path: '/',
     maxAge: 0,
+    priority: 'high' as const,
   };
+}
+
+export function getLoginThrottleState(identifier: string): LoginThrottleState {
+  const state = normalizeLoginAttempts(identifier);
+  if (state.lockedUntil > Date.now()) {
+    return {
+      allowed: false,
+      retryAfterSeconds: Math.max(1, Math.ceil((state.lockedUntil - Date.now()) / 1000)),
+      remainingAttempts: 0,
+    };
+  }
+
+  return {
+    allowed: true,
+    retryAfterSeconds: 0,
+    remainingAttempts: Math.max(0, MAX_LOGIN_ATTEMPTS - state.failures.length),
+  };
+}
+
+export function recordFailedLogin(identifier: string): LoginThrottleState {
+  const now = Date.now();
+  const state = normalizeLoginAttempts(identifier);
+  state.failures.push(now);
+  state.failures = state.failures.filter((timestamp) => timestamp > now - (LOGIN_WINDOW_SECONDS * 1000));
+  if (state.failures.length >= MAX_LOGIN_ATTEMPTS) {
+    state.lockedUntil = now + (LOGIN_LOCK_SECONDS * 1000);
+  }
+  loginAttempts.set(identifier, state);
+  return getLoginThrottleState(identifier);
+}
+
+export function clearLoginFailures(identifier: string) {
+  loginAttempts.delete(identifier);
 }

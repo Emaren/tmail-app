@@ -26,6 +26,7 @@ import {
   SeedTestRunDetail,
   SeedTestRunSummary,
   TemplateSummary,
+  TemplateVersionSummary,
   TopUser,
   TrackedLink,
 } from '@/lib/types';
@@ -96,6 +97,23 @@ interface TemplateResponse {
   is_active?: boolean;
   created_at?: string;
   updated_at?: string;
+  version_count?: number;
+  current_version?: number;
+}
+
+interface TemplateVersionResponse {
+  id: string;
+  template_id?: string;
+  version_number?: number;
+  name?: string;
+  category?: string;
+  description?: string;
+  subject?: string;
+  preheader?: string;
+  html_body?: string;
+  text_body?: string;
+  is_active?: boolean;
+  created_at?: string;
 }
 
 interface SeedInboxResponse {
@@ -135,8 +153,19 @@ interface SeedRunResponse {
   summary?: string;
   result_count?: number;
   completed_count?: number;
+  accepted_count?: number;
+  rejected_count?: number;
   inbox_count?: number;
+  promotions_count?: number;
   spam_count?: number;
+  missing_count?: number;
+  clean_count?: number;
+  issues_count?: number;
+  acceptance_score?: number;
+  placement_score?: number;
+  render_score?: number;
+  overall_score?: number;
+  score_state?: 'healthy' | 'attention' | 'critical';
   created_at?: string;
   updated_at?: string;
   sent_at?: string | null;
@@ -311,6 +340,25 @@ function normalizeTemplate(item: TemplateResponse): TemplateSummary {
     isActive: item.is_active ?? true,
     createdAt: item.created_at ?? new Date().toISOString(),
     updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+    versionCount: item.version_count ?? 1,
+    currentVersion: item.current_version ?? item.version_count ?? 1,
+  };
+}
+
+function normalizeTemplateVersion(item: TemplateVersionResponse): TemplateVersionSummary {
+  return {
+    id: item.id,
+    templateId: item.template_id ?? '',
+    versionNumber: item.version_number ?? 1,
+    name: item.name ?? 'Untitled template',
+    category: item.category ?? 'General',
+    description: item.description ?? '',
+    subject: item.subject ?? '',
+    preheader: item.preheader ?? '',
+    htmlBody: item.html_body ?? '',
+    textBody: item.text_body ?? '',
+    isActive: item.is_active ?? true,
+    createdAt: item.created_at ?? new Date().toISOString(),
   };
 }
 
@@ -375,8 +423,19 @@ function normalizeSeedRun(item: SeedRunResponse): SeedTestRunSummary {
     summary: item.summary ?? 'Awaiting seed results.',
     resultCount: item.result_count ?? 0,
     completedCount: item.completed_count ?? 0,
+    acceptedCount: item.accepted_count ?? 0,
+    rejectedCount: item.rejected_count ?? 0,
     inboxCount: item.inbox_count ?? 0,
+    promotionsCount: item.promotions_count ?? 0,
     spamCount: item.spam_count ?? 0,
+    missingCount: item.missing_count ?? 0,
+    cleanCount: item.clean_count ?? 0,
+    issuesCount: item.issues_count ?? 0,
+    acceptanceScore: item.acceptance_score ?? 0,
+    placementScore: item.placement_score ?? 0,
+    renderScore: item.render_score ?? 0,
+    overallScore: item.overall_score ?? 0,
+    scoreState: item.score_state ?? 'attention',
     createdAt: item.created_at ?? new Date().toISOString(),
     updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
     sentAt: item.sent_at ?? null,
@@ -485,6 +544,14 @@ export async function getTemplates(): Promise<TemplateSummary[]> {
     return mockTemplates;
   }
   return payload.items.map(normalizeTemplate);
+}
+
+export async function getTemplateVersions(templateId: string): Promise<TemplateVersionSummary[]> {
+  const payload = await fetchServerJson<{ items?: TemplateVersionResponse[] }>(`/templates/${templateId}/versions`);
+  if (!payload?.items?.length) {
+    return [];
+  }
+  return payload.items.map(normalizeTemplateVersion);
 }
 
 export async function getSeedInboxes(): Promise<SeedInboxSummary[]> {

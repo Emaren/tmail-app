@@ -115,8 +115,19 @@ function normalizeSeedRunResponse(item: Record<string, unknown>): SeedTestRunDet
     summary: typeof item.summary === 'string' ? item.summary : 'Awaiting seed results.',
     resultCount: typeof item.result_count === 'number' ? item.result_count : 0,
     completedCount: typeof item.completed_count === 'number' ? item.completed_count : 0,
+    acceptedCount: typeof item.accepted_count === 'number' ? item.accepted_count : 0,
+    rejectedCount: typeof item.rejected_count === 'number' ? item.rejected_count : 0,
     inboxCount: typeof item.inbox_count === 'number' ? item.inbox_count : 0,
+    promotionsCount: typeof item.promotions_count === 'number' ? item.promotions_count : 0,
     spamCount: typeof item.spam_count === 'number' ? item.spam_count : 0,
+    missingCount: typeof item.missing_count === 'number' ? item.missing_count : 0,
+    cleanCount: typeof item.clean_count === 'number' ? item.clean_count : 0,
+    issuesCount: typeof item.issues_count === 'number' ? item.issues_count : 0,
+    acceptanceScore: typeof item.acceptance_score === 'number' ? item.acceptance_score : 0,
+    placementScore: typeof item.placement_score === 'number' ? item.placement_score : 0,
+    renderScore: typeof item.render_score === 'number' ? item.render_score : 0,
+    overallScore: typeof item.overall_score === 'number' ? item.overall_score : 0,
+    scoreState: item.score_state === 'healthy' || item.score_state === 'critical' ? item.score_state : 'attention',
     createdAt,
     updatedAt,
     sentAt: typeof item.sent_at === 'string' ? item.sent_at : null,
@@ -559,12 +570,13 @@ export default function SeedLabWorkspace({ identities, templates, seedInboxes, s
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusPill label={run.status} state={run.status === 'completed' ? 'healthy' : run.status === 'needs_review' ? 'attention' : 'neutral'} />
+                      <StatusPill label={`Score ${run.overallScore}`} state={run.scoreState} />
                       <span className="text-[0.64rem] uppercase tracking-[0.24em] text-cyan-200/68">{run.identity}</span>
                     </div>
                     <h2 className="mt-3 text-xl font-semibold text-white">{run.subject}</h2>
                     <p className="mt-3 text-sm leading-6 text-slate-300/72">{run.summary}</p>
                   </div>
-                  <div className="grid grid-cols-3 gap-3 text-sm text-slate-300/72 md:min-w-[220px]">
+                  <div className="grid grid-cols-2 gap-3 text-sm text-slate-300/72 md:min-w-[300px]">
                     <div>
                       <div className="text-[0.62rem] uppercase tracking-[0.22em] text-slate-400">Done</div>
                       <div className="mt-2 text-white">{run.completedCount}/{run.resultCount}</div>
@@ -576,6 +588,10 @@ export default function SeedLabWorkspace({ identities, templates, seedInboxes, s
                     <div>
                       <div className="text-[0.62rem] uppercase tracking-[0.22em] text-slate-400">Spam</div>
                       <div className="mt-2 text-white">{run.spamCount}</div>
+                    </div>
+                    <div>
+                      <div className="text-[0.62rem] uppercase tracking-[0.22em] text-slate-400">Acceptance</div>
+                      <div className="mt-2 text-white">{run.acceptanceScore}</div>
                     </div>
                   </div>
                 </div>
@@ -598,9 +614,41 @@ export default function SeedLabWorkspace({ identities, templates, seedInboxes, s
               <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-5">
                 <div className="flex flex-wrap items-center gap-3">
                   <StatusPill label={selectedRun.status} state={selectedRun.status === 'completed' ? 'healthy' : selectedRun.status === 'needs_review' ? 'attention' : 'neutral'} />
+                  <StatusPill label={`Score ${selectedRun.overallScore}`} state={selectedRun.scoreState} />
                   <div className="text-sm text-slate-300/72">{selectedRun.subject}</div>
                 </div>
                 <p className="mt-4 text-sm leading-6 text-slate-300/74">{selectedRun.summary}</p>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-4">
+                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Acceptance</div>
+                  <div className="mt-2 text-2xl text-white">{selectedRun.acceptanceScore}</div>
+                  <div className="mt-2 text-sm text-slate-300/70">
+                    {selectedRun.acceptedCount} yes / {selectedRun.rejectedCount} no
+                  </div>
+                </div>
+                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Placement</div>
+                  <div className="mt-2 text-2xl text-white">{selectedRun.placementScore}</div>
+                  <div className="mt-2 text-sm text-slate-300/70">
+                    {selectedRun.inboxCount} inbox / {selectedRun.promotionsCount} promotions
+                  </div>
+                </div>
+                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Render</div>
+                  <div className="mt-2 text-2xl text-white">{selectedRun.renderScore}</div>
+                  <div className="mt-2 text-sm text-slate-300/70">
+                    {selectedRun.cleanCount} clean / {selectedRun.issuesCount} issues
+                  </div>
+                </div>
+                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Risk</div>
+                  <div className="mt-2 text-2xl text-white">{selectedRun.spamCount + selectedRun.missingCount}</div>
+                  <div className="mt-2 text-sm text-slate-300/70">
+                    {selectedRun.spamCount} spam / {selectedRun.missingCount} missing
+                  </div>
+                </div>
               </div>
 
               {selectedRun.results.map((result) => (

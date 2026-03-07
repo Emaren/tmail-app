@@ -19,7 +19,7 @@ export default function LoginForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as { error?: string; retryAfterSeconds?: number; remainingAttempts?: number };
       if (!response.ok) {
         throw new Error(payload.error ?? 'Login failed.');
       }
@@ -60,6 +60,10 @@ export default function LoginForm() {
       >
         {pending ? 'Opening dashboard...' : 'Enter TMail'}
       </button>
+
+      <p className="text-xs leading-6 text-slate-400">
+        Failed attempts are throttled to protect the private operator surface.
+      </p>
     </form>
   );
 }

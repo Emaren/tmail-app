@@ -134,6 +134,23 @@ export interface TemplateSummary {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  versionCount?: number;
+  currentVersion?: number;
+}
+
+export interface TemplateVersionSummary {
+  id: string;
+  templateId: string;
+  versionNumber: number;
+  name: string;
+  category: string;
+  description: string;
+  subject: string;
+  preheader: string;
+  htmlBody: string;
+  textBody: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface SeedInboxSummary {
@@ -173,8 +190,19 @@ export interface SeedTestRunSummary {
   summary: string;
   resultCount: number;
   completedCount: number;
+  acceptedCount: number;
+  rejectedCount: number;
   inboxCount: number;
+  promotionsCount: number;
   spamCount: number;
+  missingCount: number;
+  cleanCount: number;
+  issuesCount: number;
+  acceptanceScore: number;
+  placementScore: number;
+  renderScore: number;
+  overallScore: number;
+  scoreState: HealthState;
   createdAt: string;
   updatedAt: string;
   sentAt?: string | null;
