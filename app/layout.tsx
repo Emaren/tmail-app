@@ -1,39 +1,33 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import type { Metadata, Viewport } from 'next';
+import { DM_Sans, Cormorant_Garamond } from 'next/font/google';
+import './globals.css';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const sans = DM_Sans({
+  variable: '--font-sans',
+  subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const display = Cormorant_Garamond({
+  variable: '--font-display',
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
 });
 
 export const metadata: Metadata = {
-  title: "TMail Dashboard",
-  description: "Pixel tracking and email intelligence.",
-  viewport: "width=device-width, initial-scale=1",
+  title: 'TMail Operator Dashboard',
+  description: 'Premium outbound command center for composition, tracking, and deliverability.',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body
-        className={`
-          ${geistSans.variable} ${geistMono.variable}
-          bg-zinc-950 text-zinc-100 antialiased
-        `}
-      >
-        <div className="w-full min-h-screen flex flex-col">
-          {children}
-        </div>
+      <body className={`${sans.variable} ${display.variable} font-sans text-slate-100`}>
+        <div className="app-frame">{children}</div>
       </body>
     </html>
   );

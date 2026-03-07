@@ -1,10 +1,10 @@
-'use client';
+import { ReactNode } from 'react';
+import Panel from '@/components/shell/Panel';
 
-export default function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+export default function ChartCard({ title, kicker, children }: { title: string; kicker?: string; children: ReactNode }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-lg space-y-4">
-      <h3 className="text-xl font-semibold text-gray-300">{title}</h3>
+    <Panel title={title} kicker={kicker} className="h-full">
       {children}
-    </div>
+    </Panel>
   );
 }
