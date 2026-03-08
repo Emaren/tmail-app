@@ -260,6 +260,9 @@ interface SegmentResponse {
   description?: string;
   match_mode?: 'any' | 'all';
   tags?: string[];
+  company_contains?: string;
+  source_filter?: string;
+  engagement_filter?: 'any' | 'active' | 'clicked' | 'replied' | 'converted' | 'quiet';
   contact_count?: number;
   contact_emails?: string[];
   contacts_preview?: Array<{
@@ -758,6 +761,9 @@ function normalizeSegment(item: SegmentResponse): SegmentSummary {
     description: item.description ?? '',
     matchMode: item.match_mode ?? 'any',
     tags: Array.isArray(item.tags) ? item.tags.filter((tag): tag is string => typeof tag === 'string') : [],
+    companyContains: item.company_contains ?? '',
+    sourceFilter: item.source_filter ?? '',
+    engagementFilter: item.engagement_filter ?? 'any',
     contactCount: item.contact_count ?? 0,
     contactEmails: Array.isArray(item.contact_emails) ? item.contact_emails.filter((email): email is string => typeof email === 'string') : [],
     contactsPreview: Array.isArray(item.contacts_preview)

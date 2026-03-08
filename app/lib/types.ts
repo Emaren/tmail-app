@@ -317,6 +317,9 @@ export interface SegmentSummary {
   description: string;
   matchMode: 'any' | 'all';
   tags: string[];
+  companyContains: string;
+  sourceFilter: string;
+  engagementFilter: 'any' | 'active' | 'clicked' | 'replied' | 'converted' | 'quiet';
   contactCount: number;
   contactEmails: string[];
   contactsPreview: SegmentPreviewContact[];

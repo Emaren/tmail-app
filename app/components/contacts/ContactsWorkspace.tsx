@@ -52,6 +52,9 @@ interface SegmentApiPayload {
   description?: string;
   match_mode?: 'any' | 'all';
   tags?: string[];
+  company_contains?: string;
+  source_filter?: string;
+  engagement_filter?: 'any' | 'active' | 'clicked' | 'replied' | 'converted' | 'quiet';
   contact_count?: number;
   contact_emails?: string[];
   contacts_preview?: Array<{
@@ -119,6 +122,9 @@ function normalizeSegment(payload: SegmentApiPayload): SegmentSummary {
     description: payload.description ?? '',
     matchMode: payload.match_mode ?? 'any',
     tags: Array.isArray(payload.tags) ? payload.tags.filter((tag): tag is string => typeof tag === 'string') : [],
+    companyContains: payload.company_contains ?? '',
+    sourceFilter: payload.source_filter ?? '',
+    engagementFilter: payload.engagement_filter ?? 'any',
     contactCount: payload.contact_count ?? 0,
     contactEmails: Array.isArray(payload.contact_emails)
       ? payload.contact_emails.filter((email): email is string => typeof email === 'string')
@@ -145,8 +151,17 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
   const [segments, setSegments] = useState(initialSegments);
   const [selectedId, setSelectedId] = useState(initialContacts[0]?.id ?? '');
   const [selected, setSelected] = useState<ContactSummary | null>(initialContacts[0] ?? null);
-  const [form, setForm] = useState({ id: '', emailAddress: '', displayName: '', company: '', tags: '', notes: '' });
-  const [segmentForm, setSegmentForm] = useState({ id: '', name: '', description: '', matchMode: 'any' as 'any' | 'all', tags: '' });
+  const [form, setForm] = useState({ id: '', emailAddress: '', displayName: '', company: '', source: '', tags: '', notes: '' });
+  const [segmentForm, setSegmentForm] = useState({
+    id: '',
+    name: '',
+    description: '',
+    matchMode: 'any' as 'any' | 'all',
+    companyContains: '',
+    sourceFilter: '',
+    engagementFilter: 'any' as SegmentSummary['engagementFilter'],
+    tags: '',
+  });
   const [pending, setPending] = useState(false);
   const [segmentPending, setSegmentPending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -174,6 +189,7 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
             emailAddress: next.emailAddress,
             displayName: next.displayName,
             company: next.company,
+            source: next.source,
             tags: next.tags.join(', '),
             notes: next.notes,
           });
@@ -204,7 +220,7 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
   function startNewContact() {
     setSelectedId('');
     setSelected(null);
-    setForm({ id: '', emailAddress: '', displayName: '', company: '', tags: '', notes: '' });
+    setForm({ id: '', emailAddress: '', displayName: '', company: '', source: '', tags: '', notes: '' });
   }
 
   async function saveContact() {
@@ -219,6 +235,7 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
           email_address: form.emailAddress,
           display_name: form.displayName,
           company: form.company,
+          source: form.source,
           tags: form.tags.split(',').map((item) => item.trim()).filter(Boolean),
           notes: form.notes,
         }),
@@ -234,7 +251,7 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
       });
       setSelectedId(next.id);
       setSelected(next);
-      setForm({ id: next.id, emailAddress: next.emailAddress, displayName: next.displayName, company: next.company, tags: next.tags.join(', '), notes: next.notes });
+      setForm({ id: next.id, emailAddress: next.emailAddress, displayName: next.displayName, company: next.company, source: next.source, tags: next.tags.join(', '), notes: next.notes });
       setFeedback('Contact saved.');
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Unable to save contact.');
@@ -255,6 +272,9 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
           name: segmentForm.name,
           description: segmentForm.description,
           match_mode: segmentForm.matchMode,
+          company_contains: segmentForm.companyContains,
+          source_filter: segmentForm.sourceFilter,
+          engagement_filter: segmentForm.engagementFilter,
           tags: segmentForm.tags.split(',').map((item) => item.trim()).filter(Boolean),
         }),
       });
@@ -272,6 +292,9 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
         name: next.name,
         description: next.description,
         matchMode: next.matchMode,
+        companyContains: next.companyContains,
+        sourceFilter: next.sourceFilter,
+        engagementFilter: next.engagementFilter,
         tags: next.tags.join(', '),
       });
       setSegmentFeedback('Segment saved.');
@@ -347,7 +370,16 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
             {segments.length ? segments.map((segment) => (
               <button
                 key={segment.id}
-                onClick={() => setSegmentForm({ id: segment.id, name: segment.name, description: segment.description, matchMode: segment.matchMode, tags: segment.tags.join(', ') })}
+                onClick={() => setSegmentForm({
+                  id: segment.id,
+                  name: segment.name,
+                  description: segment.description,
+                  matchMode: segment.matchMode,
+                  companyContains: segment.companyContains,
+                  sourceFilter: segment.sourceFilter,
+                  engagementFilter: segment.engagementFilter,
+                  tags: segment.tags.join(', '),
+                })}
                 className="w-full rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-left transition hover:bg-white/[0.05]"
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -363,6 +395,21 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
                       {segment.matchMode}:{tag}
                     </span>
                   ))}
+                  {segment.companyContains ? (
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
+                      company:{segment.companyContains}
+                    </span>
+                  ) : null}
+                  {segment.sourceFilter ? (
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
+                      source:{segment.sourceFilter}
+                    </span>
+                  ) : null}
+                  {segment.engagementFilter !== 'any' ? (
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
+                      engagement:{segment.engagementFilter}
+                    </span>
+                  ) : null}
                 </div>
                 {segment.contactsPreview.length ? (
                   <div className="mt-3 text-xs text-slate-400">
@@ -404,6 +451,10 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
               </label>
             </div>
             <label className="space-y-2 text-sm text-slate-300/78">
+              <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Source</span>
+              <input value={form.source} onChange={(event) => setForm((current) => ({ ...current, source: event.target.value.toLowerCase() }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" placeholder="manual, import, founder note" />
+            </label>
+            <label className="space-y-2 text-sm text-slate-300/78">
               <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Tags</span>
               <input value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" placeholder="founder, inbound, warm intro" />
             </label>
@@ -434,6 +485,27 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
               <select value={segmentForm.matchMode} onChange={(event) => setSegmentForm((current) => ({ ...current, matchMode: event.target.value as 'any' | 'all' }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none">
                 <option value="any">Any tag matches</option>
                 <option value="all">All tags required</option>
+              </select>
+            </label>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="space-y-2 text-sm text-slate-300/78">
+                <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Company contains</span>
+                <input value={segmentForm.companyContains} onChange={(event) => setSegmentForm((current) => ({ ...current, companyContains: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" placeholder="acme" />
+              </label>
+              <label className="space-y-2 text-sm text-slate-300/78">
+                <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Source</span>
+                <input value={segmentForm.sourceFilter} onChange={(event) => setSegmentForm((current) => ({ ...current, sourceFilter: event.target.value.toLowerCase() }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" placeholder="manual" />
+              </label>
+            </div>
+            <label className="space-y-2 text-sm text-slate-300/78">
+              <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Engagement filter</span>
+              <select value={segmentForm.engagementFilter} onChange={(event) => setSegmentForm((current) => ({ ...current, engagementFilter: event.target.value as SegmentSummary['engagementFilter'] }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none">
+                <option value="any">Any engagement state</option>
+                <option value="active">Any activity</option>
+                <option value="clicked">Clicked</option>
+                <option value="replied">Replied</option>
+                <option value="converted">Converted</option>
+                <option value="quiet">Quiet</option>
               </select>
             </label>
             <label className="space-y-2 text-sm text-slate-300/78">
