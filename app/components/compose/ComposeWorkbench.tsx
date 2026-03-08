@@ -284,6 +284,29 @@ export default function ComposeWorkbench({ identities, templates, apiBase }: Com
               Inject pixel
             </label>
           </div>
+
+          <div className="rounded-[24px] border border-emerald-300/18 bg-emerald-300/[0.06] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-2">
+                <p className="text-[0.7rem] uppercase tracking-[0.28em] text-emerald-100/70">Immediate live rail</p>
+                <h3 className="text-xl font-semibold text-white">Send now</h3>
+                <p className="max-w-2xl text-sm leading-6 text-slate-300/78">
+                  This triggers the real Apple SMTP live-send path immediately. There is no queue layer behind this button yet.
+                </p>
+              </div>
+              <button
+                onClick={() => submit('send_live')}
+                disabled={pendingAction !== null || preflight?.status === 'blocked'}
+                className="w-full rounded-[22px] border border-emerald-300/24 bg-emerald-300/14 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-300/18 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto lg:min-w-[220px]"
+              >
+                {pendingAction === 'send_live'
+                  ? 'Sending now...'
+                  : preflight?.status === 'blocked'
+                    ? 'Resolve blocking issues before send'
+                    : 'Send now'}
+              </button>
+            </div>
+          </div>
         </div>
       </Panel>
 
@@ -356,8 +379,11 @@ export default function ComposeWorkbench({ identities, templates, apiBase }: Com
           </div>
         </Panel>
 
-        <Panel title="Send actions" kicker="Draft and Apple SMTP flow">
+        <Panel title="Send actions" kicker="Draft, test, and immediate live send">
           <div className="space-y-3">
+            <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm leading-6 text-slate-300/74">
+              `Save draft` stores work in TMail only. `Send test through Apple SMTP` sends immediately in test mode. `Send now` is the real live Apple SMTP send path.
+            </div>
             <button
               onClick={() => submit('draft')}
               disabled={pendingAction !== null}
@@ -378,10 +404,10 @@ export default function ComposeWorkbench({ identities, templates, apiBase }: Com
               className="w-full rounded-2xl border border-emerald-300/24 bg-emerald-300/12 px-4 py-3 text-left text-sm font-medium text-white transition hover:bg-emerald-300/16 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {pendingAction === 'send_live'
-                ? 'Attempting live send...'
+                ? 'Sending now...'
                 : preflight?.status === 'blocked'
-                  ? 'Resolve blocking issues before live send'
-                  : 'Queue live send'}
+                  ? 'Resolve blocking issues before send'
+                  : 'Send now through Apple SMTP'}
             </button>
           </div>
         </Panel>
@@ -405,6 +431,7 @@ export default function ComposeWorkbench({ identities, templates, apiBase }: Com
             <li>Loads reusable templates into the real compose flow instead of keeping Templates as a dead staging page.</li>
             <li>Runs preflight analysis through the locked-down backend before every send.</li>
             <li>Stores drafts and sends through the same protected proxy path the rest of the dashboard uses.</li>
+            <li>The live send path is immediate right now. A true queue/execution layer is still a future build slice.</li>
             <li>Leaves tracking public only where it must stay public: pixel and click rails.</li>
           </ul>
         </Panel>
