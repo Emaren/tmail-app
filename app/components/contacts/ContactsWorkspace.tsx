@@ -55,6 +55,9 @@ interface SegmentApiPayload {
   company_contains?: string;
   source_filter?: string;
   engagement_filter?: 'any' | 'active' | 'clicked' | 'replied' | 'converted' | 'quiet';
+  last_activity_days?: number | null;
+  min_sent_count?: number | null;
+  max_sent_count?: number | null;
   contact_count?: number;
   contact_emails?: string[];
   contacts_preview?: Array<{
@@ -125,6 +128,9 @@ function normalizeSegment(payload: SegmentApiPayload): SegmentSummary {
     companyContains: payload.company_contains ?? '',
     sourceFilter: payload.source_filter ?? '',
     engagementFilter: payload.engagement_filter ?? 'any',
+    lastActivityDays: payload.last_activity_days ?? null,
+    minSentCount: payload.min_sent_count ?? null,
+    maxSentCount: payload.max_sent_count ?? null,
     contactCount: payload.contact_count ?? 0,
     contactEmails: Array.isArray(payload.contact_emails)
       ? payload.contact_emails.filter((email): email is string => typeof email === 'string')
@@ -160,6 +166,9 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
     companyContains: '',
     sourceFilter: '',
     engagementFilter: 'any' as SegmentSummary['engagementFilter'],
+    lastActivityDays: '',
+    minSentCount: '',
+    maxSentCount: '',
     tags: '',
   });
   const [pending, setPending] = useState(false);
@@ -275,6 +284,9 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
           company_contains: segmentForm.companyContains,
           source_filter: segmentForm.sourceFilter,
           engagement_filter: segmentForm.engagementFilter,
+          last_activity_days: segmentForm.lastActivityDays ? Number(segmentForm.lastActivityDays) : undefined,
+          min_sent_count: segmentForm.minSentCount ? Number(segmentForm.minSentCount) : undefined,
+          max_sent_count: segmentForm.maxSentCount ? Number(segmentForm.maxSentCount) : undefined,
           tags: segmentForm.tags.split(',').map((item) => item.trim()).filter(Boolean),
         }),
       });
@@ -295,6 +307,9 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
         companyContains: next.companyContains,
         sourceFilter: next.sourceFilter,
         engagementFilter: next.engagementFilter,
+        lastActivityDays: next.lastActivityDays?.toString() ?? '',
+        minSentCount: next.minSentCount?.toString() ?? '',
+        maxSentCount: next.maxSentCount?.toString() ?? '',
         tags: next.tags.join(', '),
       });
       setSegmentFeedback('Segment saved.');
@@ -378,6 +393,9 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
                   companyContains: segment.companyContains,
                   sourceFilter: segment.sourceFilter,
                   engagementFilter: segment.engagementFilter,
+                  lastActivityDays: segment.lastActivityDays?.toString() ?? '',
+                  minSentCount: segment.minSentCount?.toString() ?? '',
+                  maxSentCount: segment.maxSentCount?.toString() ?? '',
                   tags: segment.tags.join(', '),
                 })}
                 className="w-full rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-left transition hover:bg-white/[0.05]"
@@ -408,6 +426,21 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
                   {segment.engagementFilter !== 'any' ? (
                     <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
                       engagement:{segment.engagementFilter}
+                    </span>
+                  ) : null}
+                  {segment.lastActivityDays !== null ? (
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
+                      active:{segment.lastActivityDays}d
+                    </span>
+                  ) : null}
+                  {segment.minSentCount !== null ? (
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
+                      min sent:{segment.minSentCount}
+                    </span>
+                  ) : null}
+                  {segment.maxSentCount !== null ? (
+                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
+                      max sent:{segment.maxSentCount}
                     </span>
                   ) : null}
                 </div>
@@ -495,6 +528,20 @@ export default function ContactsWorkspace({ contacts: initialContacts, segments:
               <label className="space-y-2 text-sm text-slate-300/78">
                 <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Source</span>
                 <input value={segmentForm.sourceFilter} onChange={(event) => setSegmentForm((current) => ({ ...current, sourceFilter: event.target.value.toLowerCase() }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" placeholder="manual" />
+              </label>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-3">
+              <label className="space-y-2 text-sm text-slate-300/78">
+                <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Last activity within days</span>
+                <input type="number" min="0" value={segmentForm.lastActivityDays} onChange={(event) => setSegmentForm((current) => ({ ...current, lastActivityDays: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" placeholder="30" />
+              </label>
+              <label className="space-y-2 text-sm text-slate-300/78">
+                <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Minimum sent count</span>
+                <input type="number" min="0" value={segmentForm.minSentCount} onChange={(event) => setSegmentForm((current) => ({ ...current, minSentCount: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" placeholder="1" />
+              </label>
+              <label className="space-y-2 text-sm text-slate-300/78">
+                <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Maximum sent count</span>
+                <input type="number" min="0" value={segmentForm.maxSentCount} onChange={(event) => setSegmentForm((current) => ({ ...current, maxSentCount: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" placeholder="5" />
               </label>
             </div>
             <label className="space-y-2 text-sm text-slate-300/78">

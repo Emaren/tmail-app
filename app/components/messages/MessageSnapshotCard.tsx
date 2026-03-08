@@ -33,11 +33,28 @@ function formatTimeLabel(value: string) {
 }
 
 function compactPreview(preview: string) {
-  const normalized = preview.replace(/\s+/g, ' ').trim();
-  if (normalized.length <= 168) {
+  const normalized = preview
+    .replace(/https?:\/\/[^\s]+/gi, (value) => {
+      try {
+        const url = new URL(value);
+        const host = url.hostname.replace(/^www\./, '');
+        if (url.pathname.includes('/api/tracking/click/')) {
+          return `link via ${host}`;
+        }
+        const path = url.pathname && url.pathname !== '/' ? url.pathname.replace(/\/$/, '') : '';
+        const shortPath = path.length > 18 ? `${path.slice(0, 15)}...` : path;
+        return `${host}${shortPath}`;
+      } catch {
+        return 'link';
+      }
+    })
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (normalized.length <= 132) {
     return normalized;
   }
-  return `${normalized.slice(0, 165).trimEnd()}...`;
+  return `${normalized.slice(0, 129).trimEnd()}...`;
 }
 
 function statusTone(status: MessageSummary['status']) {
@@ -91,8 +108,8 @@ export default function MessageSnapshotCard({ message, dense = false }: MessageS
         </div>
 
         <div className="min-w-0">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0 space-y-3">
+          <div className={dense ? 'grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start' : 'grid gap-5 xl:grid-cols-[minmax(0,1fr)_372px] xl:items-start'}>
+            <div className="min-w-0 space-y-3 xl:pr-2">
               <div className="flex flex-wrap items-center gap-2.5">
                 <StatusPill label={message.status} state={statusTone(message.status)} />
                 <span
@@ -102,10 +119,12 @@ export default function MessageSnapshotCard({ message, dense = false }: MessageS
                   {message.identity}
                 </span>
               </div>
-              <h3 className="break-anywhere text-lg font-semibold text-white sm:text-[1.1rem]">{message.subject}</h3>
+              <h3 className="max-w-[28ch] break-anywhere text-lg font-semibold text-white sm:max-w-[34ch] sm:text-[1.1rem]">
+                {message.subject}
+              </h3>
               <p
                 title={message.preview}
-                className="break-anywhere text-clamp-2 max-w-3xl text-sm leading-6 text-slate-300/72"
+                className="break-anywhere text-clamp-2 max-w-[56ch] text-sm leading-6 text-slate-300/72"
               >
                 {compactPreview(message.preview)}
               </p>
@@ -113,14 +132,14 @@ export default function MessageSnapshotCard({ message, dense = false }: MessageS
 
             <div
               className={[
-                'grid gap-3 text-left text-sm text-slate-300/72',
-                dense ? 'grid-cols-2 sm:grid-cols-4 xl:min-w-[320px] xl:text-right' : 'grid-cols-2 md:grid-cols-3 xl:min-w-[420px] xl:text-right',
+                'grid gap-3 rounded-[20px] border border-white/7 bg-black/10 p-4 text-left text-sm text-slate-300/72 xl:self-stretch',
+                dense ? 'grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 xl:max-w-[300px]' : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-2 xl:max-w-[372px]',
               ].join(' ')}
             >
               {stats.map(([label, value]) => (
                 <div key={`${message.id}-${label}`} className="min-w-0">
                   <div className="text-[0.64rem] uppercase tracking-[0.22em] text-slate-400">{label}</div>
-                  <div className="mt-2 truncate text-base text-white" title={value}>
+                  <div className="mt-2 truncate text-base text-white xl:text-[1.02rem]" title={value}>
                     {value}
                   </div>
                 </div>

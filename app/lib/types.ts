@@ -320,6 +320,9 @@ export interface SegmentSummary {
   companyContains: string;
   sourceFilter: string;
   engagementFilter: 'any' | 'active' | 'clicked' | 'replied' | 'converted' | 'quiet';
+  lastActivityDays: number | null;
+  minSentCount: number | null;
+  maxSentCount: number | null;
   contactCount: number;
   contactEmails: string[];
   contactsPreview: SegmentPreviewContact[];
