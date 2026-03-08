@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { useState } from 'react';
 import Panel from '@/components/shell/Panel';
 import StatusPill from '@/components/shell/StatusPill';
-import { CampaignRunSummary, CampaignSummary, IdentitySummary, TemplateSummary } from '@/lib/types';
+import { CampaignRunSummary, CampaignSchedulerStatus, CampaignSummary, IdentitySummary, TemplateSummary } from '@/lib/types';
 
 interface CampaignWorkspaceProps {
   campaigns: CampaignSummary[];
   identities: IdentitySummary[];
   templates: TemplateSummary[];
+  scheduler: CampaignSchedulerStatus;
   apiBase: string;
 }
 
@@ -57,6 +58,32 @@ interface CampaignApiPayload {
   recent_runs?: CampaignRunApiPayload[];
   created_at?: string;
   updated_at?: string;
+}
+
+interface CampaignSchedulerRunApiPayload {
+  id: string;
+  scope?: string;
+  trigger_type?: string;
+  status?: string;
+  due_count?: number;
+  launched_count?: number;
+  failed_count?: number;
+  summary?: string;
+  campaign_ids?: string[];
+  run_ids?: string[];
+  started_at?: string;
+  completed_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface CampaignSchedulerStatusApiPayload {
+  interval_minutes?: number;
+  scheduled_count?: number;
+  due_count?: number;
+  next_scheduled_for?: string | null;
+  last_run?: CampaignSchedulerRunApiPayload | null;
+  recent_runs?: CampaignSchedulerRunApiPayload[];
 }
 
 function normalizeCampaignRun(payload: CampaignRunApiPayload): CampaignRunSummary {
@@ -107,8 +134,59 @@ function normalizeCampaign(payload: CampaignApiPayload): CampaignSummary {
   };
 }
 
+function normalizeSchedulerRun(payload: CampaignSchedulerRunApiPayload) {
+  return {
+    id: payload.id,
+    scope: payload.scope ?? 'campaigns',
+    triggerType: payload.trigger_type ?? 'manual',
+    status: payload.status ?? 'idle',
+    dueCount: payload.due_count ?? 0,
+    launchedCount: payload.launched_count ?? 0,
+    failedCount: payload.failed_count ?? 0,
+    summary: payload.summary ?? '',
+    campaignIds: Array.isArray(payload.campaign_ids) ? payload.campaign_ids : [],
+    runIds: Array.isArray(payload.run_ids) ? payload.run_ids : [],
+    startedAt: payload.started_at ?? new Date().toISOString(),
+    completedAt: payload.completed_at ?? null,
+    createdAt: payload.created_at ?? payload.started_at ?? new Date().toISOString(),
+    updatedAt: payload.updated_at ?? payload.completed_at ?? payload.started_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeSchedulerStatus(payload: CampaignSchedulerStatusApiPayload): CampaignSchedulerStatus {
+  return {
+    intervalMinutes: payload.interval_minutes ?? 5,
+    scheduledCount: payload.scheduled_count ?? 0,
+    dueCount: payload.due_count ?? 0,
+    nextScheduledFor: payload.next_scheduled_for ?? null,
+    lastRun: payload.last_run ? normalizeSchedulerRun(payload.last_run) : null,
+    recentRuns: Array.isArray(payload.recent_runs) ? payload.recent_runs.map(normalizeSchedulerRun) : [],
+  };
+}
+
 function formatTimestamp(value?: string | null) {
-  return value ? value.replace('T', ' ').slice(0, 16) : 'Not scheduled';
+  if (!value) {
+    return 'Not scheduled';
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value.replace('T', ' ').slice(0, 16);
+  }
+  return date.toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function toUtcIso(localValue: string) {
+  if (!localValue) {
+    return '';
+  }
+  const date = new Date(localValue);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
 }
 
 function campaignState(status: string) {
@@ -134,8 +212,22 @@ function runState(status: string) {
   return 'neutral' as const;
 }
 
-export default function CampaignWorkspace({ campaigns: initialCampaigns, identities, templates, apiBase }: CampaignWorkspaceProps) {
+function schedulerState(status: string) {
+  if (status === 'completed') {
+    return 'healthy' as const;
+  }
+  if (status === 'needs_review') {
+    return 'critical' as const;
+  }
+  if (status === 'running') {
+    return 'attention' as const;
+  }
+  return 'neutral' as const;
+}
+
+export default function CampaignWorkspace({ campaigns: initialCampaigns, identities, templates, scheduler: initialScheduler, apiBase }: CampaignWorkspaceProps) {
   const [campaigns, setCampaigns] = useState(initialCampaigns);
+  const [scheduler, setScheduler] = useState(initialScheduler);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -187,7 +279,7 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
           audience_emails: form.audienceEmails,
           send_window: form.sendWindow,
           notes: form.notes,
-          scheduled_for: form.scheduledFor || undefined,
+          scheduled_for: toUtcIso(form.scheduledFor) || undefined,
           status: form.status,
         },
         'Campaign saved.',
@@ -256,12 +348,16 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
   async function runDueCampaigns() {
     setPendingKey('run-due');
     try {
-      const response = await fetch(`${apiBase}/campaigns/run-due`, {
+      const response = await fetch(`${apiBase}/campaigns/scheduler/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ limit: 6 }),
+        body: JSON.stringify({ limit: 6, trigger_type: 'manual' }),
       });
-      const result = (await response.json()) as { error?: string; items?: Array<{ campaign?: CampaignApiPayload; run?: CampaignRunApiPayload }> };
+      const result = (await response.json()) as {
+        error?: string;
+        items?: Array<{ campaign?: CampaignApiPayload; run?: CampaignRunApiPayload | null; error?: string }>;
+        status?: CampaignSchedulerStatusApiPayload;
+      };
       if (!response.ok) {
         throw new Error(result.error ?? 'Unable to run due campaigns.');
       }
@@ -271,7 +367,10 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
           upsertCampaign(normalizeCampaign(item.campaign));
         }
       });
-      setFeedback(items.length ? `Executed ${items.length} scheduled campaign${items.length === 1 ? '' : 's'}.` : 'No scheduled campaigns were due.');
+      if (result.status) {
+        setScheduler(normalizeSchedulerStatus(result.status));
+      }
+      setFeedback(items.length ? `Scheduler touched ${items.length} scheduled campaign${items.length === 1 ? '' : 's'}.` : 'No scheduled campaigns were due.');
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Unable to run due campaigns.');
     } finally {
@@ -292,7 +391,7 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
               disabled={pendingKey !== null}
               className="rounded-[18px] border border-white/10 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/[0.08] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {pendingKey === 'run-due' ? 'Running due campaigns...' : 'Run due campaigns'}
+              {pendingKey === 'run-due' ? 'Running scheduler...' : 'Run scheduler now'}
             </button>
           </div>
 
@@ -393,6 +492,78 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
       </div>
 
       <div className="space-y-6">
+        <Panel title="Scheduler control" kicker="VPS-timed campaign execution">
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <StatusPill
+                label={scheduler.lastRun?.status ?? (scheduler.dueCount ? 'due' : 'idle')}
+                state={scheduler.lastRun ? schedulerState(scheduler.lastRun.status) : scheduler.dueCount ? 'attention' : 'neutral'}
+              />
+              <span className="text-sm text-slate-300/74">
+                Expected cadence: every {scheduler.intervalMinutes} minute{scheduler.intervalMinutes === 1 ? '' : 's'} on the VPS.
+              </span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Scheduled campaigns</div>
+                <div className="mt-2 text-2xl font-semibold text-white">{scheduler.scheduledCount}</div>
+              </div>
+              <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Due now</div>
+                <div className="mt-2 text-2xl font-semibold text-white">{scheduler.dueCount}</div>
+              </div>
+              <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Next scheduled slot</div>
+                <div className="mt-2 text-sm leading-6 text-white">{formatTimestamp(scheduler.nextScheduledFor)}</div>
+              </div>
+            </div>
+
+            {scheduler.lastRun ? (
+              <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <StatusPill label={scheduler.lastRun.status} state={schedulerState(scheduler.lastRun.status)} />
+                  <span className="text-xs uppercase tracking-[0.22em] text-slate-400">{scheduler.lastRun.triggerType}</span>
+                  <span className="text-xs text-slate-400">{formatTimestamp(scheduler.lastRun.startedAt)}</span>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-300/74">{scheduler.lastRun.summary}</p>
+                <div className="mt-2 text-xs text-slate-400">
+                  {scheduler.lastRun.launchedCount} launched · {scheduler.lastRun.failedCount} failed review · {scheduler.lastRun.dueCount} due at start
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-slate-400">
+                Scheduler history is empty. The first timer or manual run will show up here.
+              </div>
+            )}
+
+            {scheduler.recentRuns.length > 1 ? (
+              <div className="rounded-[20px] border border-white/8 bg-white/[0.025] p-4">
+                <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Recent scheduler runs</div>
+                <div className="mt-3 space-y-2">
+                  {scheduler.recentRuns.slice(0, 4).map((run) => (
+                    <div key={run.id} className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-300/72">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <StatusPill label={run.status} state={schedulerState(run.status)} />
+                        <span>{formatTimestamp(run.startedAt)}</span>
+                      </div>
+                      <div>{run.launchedCount}/{run.dueCount} launched</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <button
+              onClick={runDueCampaigns}
+              disabled={pendingKey !== null}
+              className="rounded-[20px] border border-cyan-300/22 bg-cyan-300/12 px-5 py-3 text-sm font-medium text-white transition hover:bg-cyan-300/16 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {pendingKey === 'run-due' ? 'Running scheduler...' : 'Run scheduler now'}
+            </button>
+          </div>
+        </Panel>
+
         <Panel title="Create campaign" kicker="Operator-planned send ladder">
           <div className="grid gap-4">
             <label className="space-y-2 text-sm text-slate-300/78">
@@ -461,7 +632,7 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
         <Panel title="Build guidance" kicker="What this surface now does">
           <div className="space-y-3 text-sm leading-6 text-slate-300/74">
             <p>Campaigns are no longer just saved intent. `Launch now` creates one live send per listed recipient using the linked template and identity.</p>
-            <p>`Run due campaigns` executes anything marked `scheduled` whose scheduled time has passed. This is the temporary operator-triggered scheduler until a real worker loop lands.</p>
+            <p>`Run scheduler now` executes anything marked `scheduled` whose UTC-normalized scheduled time has passed. The VPS timer uses the same runner path.</p>
             <p>
               For placement proof, use <Link href="/dashboard/seed-tests" className="text-cyan-200">Seed Tests</Link>. For ad-hoc one-offs and manual edits, use <Link href="/dashboard/compose" className="text-cyan-200">Compose</Link>.
             </p>

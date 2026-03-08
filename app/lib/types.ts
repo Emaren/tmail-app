@@ -348,6 +348,32 @@ export interface CampaignRunSummary {
   updatedAt: string;
 }
 
+export interface CampaignSchedulerRunSummary {
+  id: string;
+  scope: string;
+  triggerType: string;
+  status: string;
+  dueCount: number;
+  launchedCount: number;
+  failedCount: number;
+  summary: string;
+  campaignIds: string[];
+  runIds: string[];
+  startedAt: string;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampaignSchedulerStatus {
+  intervalMinutes: number;
+  scheduledCount: number;
+  dueCount: number;
+  nextScheduledFor?: string | null;
+  lastRun?: CampaignSchedulerRunSummary | null;
+  recentRuns: CampaignSchedulerRunSummary[];
+}
+
 export interface AnalyticsSummary {
   overview: AnalyticsOverview;
   identityPerformance: IdentityPerformance[];

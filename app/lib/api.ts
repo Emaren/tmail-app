@@ -15,6 +15,8 @@ import {
   AnalyticsSummary,
   CampaignSummary,
   CampaignRunSummary,
+  CampaignSchedulerRunSummary,
+  CampaignSchedulerStatus,
   ContactHistoryItem,
   ContactSummary,
   DashboardOverview,
@@ -261,6 +263,32 @@ interface CampaignRunResponse {
   completed_at?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+interface CampaignSchedulerRunResponse {
+  id: string;
+  scope?: string;
+  trigger_type?: string;
+  status?: string;
+  due_count?: number;
+  launched_count?: number;
+  failed_count?: number;
+  summary?: string;
+  campaign_ids?: string[];
+  run_ids?: string[];
+  started_at?: string;
+  completed_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface CampaignSchedulerStatusResponse {
+  interval_minutes?: number;
+  scheduled_count?: number;
+  due_count?: number;
+  next_scheduled_for?: string | null;
+  last_run?: CampaignSchedulerRunResponse | null;
+  recent_runs?: CampaignSchedulerRunResponse[];
 }
 
 interface ContactResponse {
@@ -714,6 +742,36 @@ function normalizeCampaignRun(item: CampaignRunResponse): CampaignRunSummary {
   };
 }
 
+function normalizeCampaignSchedulerRun(item: CampaignSchedulerRunResponse): CampaignSchedulerRunSummary {
+  return {
+    id: item.id,
+    scope: item.scope ?? 'campaigns',
+    triggerType: item.trigger_type ?? 'manual',
+    status: item.status ?? 'idle',
+    dueCount: item.due_count ?? 0,
+    launchedCount: item.launched_count ?? 0,
+    failedCount: item.failed_count ?? 0,
+    summary: item.summary ?? '',
+    campaignIds: Array.isArray(item.campaign_ids) ? item.campaign_ids : [],
+    runIds: Array.isArray(item.run_ids) ? item.run_ids : [],
+    startedAt: item.started_at ?? new Date().toISOString(),
+    completedAt: item.completed_at ?? null,
+    createdAt: item.created_at ?? item.started_at ?? new Date().toISOString(),
+    updatedAt: item.updated_at ?? item.completed_at ?? item.started_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeCampaignSchedulerStatus(payload?: CampaignSchedulerStatusResponse | null): CampaignSchedulerStatus {
+  return {
+    intervalMinutes: payload?.interval_minutes ?? 5,
+    scheduledCount: payload?.scheduled_count ?? 0,
+    dueCount: payload?.due_count ?? 0,
+    nextScheduledFor: payload?.next_scheduled_for ?? null,
+    lastRun: payload?.last_run ? normalizeCampaignSchedulerRun(payload.last_run) : null,
+    recentRuns: Array.isArray(payload?.recent_runs) ? payload.recent_runs.map(normalizeCampaignSchedulerRun) : [],
+  };
+}
+
 function normalizeContactHistory(item: NonNullable<ContactResponse['history']>[number]): ContactHistoryItem {
   return {
     messageId: item.message_id ?? '',
@@ -986,6 +1044,11 @@ export async function getCampaigns(): Promise<CampaignSummary[]> {
     return [];
   }
   return payload.items.map(normalizeCampaign);
+}
+
+export async function getCampaignSchedulerStatus(): Promise<CampaignSchedulerStatus> {
+  const payload = await fetchServerJson<CampaignSchedulerStatusResponse>('/campaigns/scheduler');
+  return normalizeCampaignSchedulerStatus(payload);
 }
 
 export async function getContacts(): Promise<ContactSummary[]> {
