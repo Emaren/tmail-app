@@ -34,6 +34,7 @@ interface CampaignApiPayload {
   open_events?: number;
   click_events?: number;
   reply_events?: number;
+  conversion_events?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -58,6 +59,7 @@ function normalizeCampaign(payload: CampaignApiPayload): CampaignSummary {
     openEvents: payload.open_events ?? 0,
     clickEvents: payload.click_events ?? 0,
     replyEvents: payload.reply_events ?? 0,
+    conversionEvents: payload.conversion_events ?? 0,
     createdAt: payload.created_at ?? new Date().toISOString(),
     updatedAt: payload.updated_at ?? payload.created_at ?? new Date().toISOString(),
   };
@@ -173,7 +175,7 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
                 <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
                   <div className="text-sm leading-6 text-slate-300/74">
                     <div>{campaign.messageCount} linked messages · {campaign.sentCount} sent</div>
-                    <div>{campaign.openEvents} opens · {campaign.clickEvents} clicks · {campaign.replyEvents} replies</div>
+                    <div>{campaign.openEvents} opens · {campaign.clickEvents} clicks · {campaign.replyEvents} replies · {campaign.conversionEvents} conversions</div>
                     <div className="mt-2 text-slate-400">{campaign.notes || 'No operator notes yet.'}</div>
                   </div>
                   <select

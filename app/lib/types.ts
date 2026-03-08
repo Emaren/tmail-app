@@ -37,6 +37,7 @@ export interface MessageSummary {
   opens: number;
   clicks: number;
   replies: number;
+  conversions: number;
   notes: string;
   sendMode?: string;
 }
@@ -109,7 +110,31 @@ export interface MessageDetail extends MessageSummary {
   trackedLinks: TrackedLink[];
   events: MessageEvent[];
   recipientsList: string[];
+  contacts: MessageContact[];
   providerMessageId?: string | null;
+}
+
+export interface MessageContact {
+  id: string;
+  contactId: string;
+  emailAddress: string;
+  displayName: string;
+  company: string;
+  tags: string[];
+  contactNotes: string;
+  deliveryStatus: string;
+  inferredOpenCount: number;
+  inferredClickCount: number;
+  replyState: string;
+  conversionState: string;
+  engagementStatus: string;
+  notes: string;
+  sentAt?: string | null;
+  lastOpenedAt?: string | null;
+  lastClickedAt?: string | null;
+  lastRepliedAt?: string | null;
+  lastConvertedAt?: string | null;
+  updatedAt: string;
 }
 
 export interface DashboardShellData {
@@ -235,9 +260,11 @@ export interface AnalyticsOverview {
   sentMessages: number;
   draftMessages: number;
   reviewMessages: number;
+  contactsCount: number;
   openEvents: number;
   clickEvents: number;
   replyEvents: number;
+  conversionEvents: number;
   seedAverageScore: number;
   activeCampaigns: number;
 }
@@ -296,6 +323,7 @@ export interface CampaignSummary {
   openEvents: number;
   clickEvents: number;
   replyEvents: number;
+  conversionEvents: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -306,4 +334,41 @@ export interface AnalyticsSummary {
   templatePerformance: TemplatePerformance[];
   seedRuns: SeedRunInsight[];
   campaigns: CampaignSummary[];
+  topContacts: ContactSummary[];
+}
+
+export interface ContactHistoryItem {
+  messageId: string;
+  subject: string;
+  status: string;
+  sendMode: string;
+  deliveryStatus: string;
+  inferredOpenCount: number;
+  inferredClickCount: number;
+  replyState: string;
+  conversionState: string;
+  engagementStatus: string;
+  sentAt?: string | null;
+  updatedAt: string;
+}
+
+export interface ContactSummary {
+  id: string;
+  emailAddress: string;
+  displayName: string;
+  company: string;
+  tags: string[];
+  source: string;
+  notes: string;
+  messageCount: number;
+  sentCount: number;
+  openCount: number;
+  clickCount: number;
+  replyCount: number;
+  conversionCount: number;
+  engagementScore: number;
+  lastActivityAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  history?: ContactHistoryItem[];
 }

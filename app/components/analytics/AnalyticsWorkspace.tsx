@@ -16,10 +16,11 @@ export default function AnalyticsWorkspace({ data }: { data: AnalyticsSummary })
 
   return (
     <div className="space-y-7 pb-12">
-      <section className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-5">
+      <section className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-6">
         <StatCard title="Messages stored" value={String(data.overview.totalMessages)} subtext={`${data.overview.sentMessages} sent, ${data.overview.draftMessages} drafts`} />
         <StatCard title="Click events" value={String(data.overview.clickEvents)} subtext="Clicks are treated as stronger truth than opens." tone="cyan" />
         <StatCard title="Reply events" value={String(data.overview.replyEvents)} subtext="Reply tracking remains the highest-value engagement signal." />
+        <StatCard title="Conversions" value={String(data.overview.conversionEvents)} subtext={`${data.overview.contactsCount} contacts currently tracked.`} tone="amber" />
         <StatCard title="Seed avg score" value={String(data.overview.seedAverageScore)} subtext="Average across the most recent recorded seed runs." tone="amber" />
         <StatCard title="Active campaigns" value={String(data.overview.activeCampaigns)} subtext={`${data.overview.reviewMessages} messages still need review.`} />
       </section>
@@ -109,15 +110,52 @@ export default function AnalyticsWorkspace({ data }: { data: AnalyticsSummary })
                   <StatusPill label={campaign.status} state={campaign.status === 'live' ? 'healthy' : campaign.status === 'ready' || campaign.status === 'scheduled' ? 'attention' : 'neutral'} />
                 </div>
                 <div className="mt-4 text-sm leading-6 text-slate-300/74">
-                  <div>{campaign.identity}</div>
-                  <div>{campaign.templateName ?? 'No template linked yet'}</div>
-                </div>
-              </article>
+                    <div>{campaign.identity}</div>
+                    <div>{campaign.templateName ?? 'No template linked yet'}</div>
+                    <div>{campaign.conversionEvents} conversion events</div>
+                  </div>
+                </article>
             )) : (
               <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5 text-sm text-slate-300/72">
                 No campaigns yet. Create one in <Link className="text-cyan-200" href="/dashboard/campaigns">Campaigns</Link>.
               </div>
             )}
+          </div>
+        </Panel>
+      </section>
+
+      <section className="grid gap-6 2xl:grid-cols-[1fr_1fr]">
+        <Panel title="Top contacts" kicker="Who is actually engaging">
+          <div className="space-y-3">
+            {data.topContacts.length ? data.topContacts.map((contact) => (
+              <Link key={contact.id} href={`/dashboard/contacts`} className="block rounded-[24px] border border-white/8 bg-white/[0.03] p-5 transition hover:bg-white/[0.05]">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="font-medium text-white">{contact.displayName || contact.emailAddress}</div>
+                    <div className="mt-1 text-sm text-slate-400">{contact.emailAddress}</div>
+                  </div>
+                  <StatusPill label={`Score ${contact.engagementScore}`} state={scoreState(contact.engagementScore)} />
+                </div>
+                <div className="mt-4 grid gap-3 text-xs text-slate-400 sm:grid-cols-4">
+                  <div>Clicks <span className="text-slate-200">{contact.clickCount}</span></div>
+                  <div>Replies <span className="text-slate-200">{contact.replyCount}</span></div>
+                  <div>Conversions <span className="text-slate-200">{contact.conversionCount}</span></div>
+                  <div>Last active <span className="text-slate-200">{contact.lastActivityAt ? new Date(contact.lastActivityAt).toLocaleDateString() : '—'}</span></div>
+                </div>
+              </Link>
+            )) : (
+              <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5 text-sm text-slate-300/72">
+                No contact engagement yet. The contacts ledger will populate as sends create recipient records and operator outcomes are logged.
+              </div>
+            )}
+          </div>
+        </Panel>
+
+        <Panel title="Interpretation rules" kicker="Product truth">
+          <div className="space-y-3 text-sm leading-6 text-slate-300/74">
+            <p>Open tracking remains a soft signal. Contact scoring weights clicks, replies, booked meetings, and conversions much higher.</p>
+            <p>For multi-recipient sends, open and click attribution only becomes contact-specific when the message had exactly one linked recipient or when an operator marks the outcome manually.</p>
+            <p>That is stricter than typical email dashboards, but it keeps TMail from pretending to know more than it actually knows.</p>
           </div>
         </Panel>
       </section>

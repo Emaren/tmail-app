@@ -52,6 +52,7 @@ export const mockMessages: MessageSummary[] = [
     opens: 18,
     clicks: 12,
     replies: 2,
+    conversions: 1,
     notes: 'Good benchmark for future Apple SMTP templates.',
   },
   {
@@ -65,6 +66,7 @@ export const mockMessages: MessageSummary[] = [
     opens: 0,
     clicks: 0,
     replies: 0,
+    conversions: 0,
     notes: 'Blocked on automated inbox placement capture.',
   },
   {
@@ -78,6 +80,7 @@ export const mockMessages: MessageSummary[] = [
     opens: 0,
     clicks: 0,
     replies: 0,
+    conversions: 0,
     notes: 'Good candidate for campaign engine milestone.',
   },
 ];

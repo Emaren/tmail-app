@@ -26,7 +26,7 @@ export default async function MessagesPage() {
               <p className="max-w-2xl text-sm leading-6 text-slate-300/72">{message.preview}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 text-sm text-slate-300/72 md:grid-cols-5 lg:grid-cols-5">
+            <div className="grid grid-cols-2 gap-4 text-sm text-slate-300/72 md:grid-cols-6 lg:grid-cols-6">
               <div>
                 <div className="text-[0.64rem] uppercase tracking-[0.22em] text-slate-400">Recipients</div>
                 <div className="mt-2 text-base text-white">{message.recipients}</div>
@@ -42,6 +42,10 @@ export default async function MessagesPage() {
               <div>
                 <div className="text-[0.64rem] uppercase tracking-[0.22em] text-slate-400">Replies</div>
                 <div className="mt-2 text-base text-white">{message.replies}</div>
+              </div>
+              <div>
+                <div className="text-[0.64rem] uppercase tracking-[0.22em] text-slate-400">Conversions</div>
+                <div className="mt-2 text-base text-white">{message.conversions}</div>
               </div>
               <div>
                 <div className="text-[0.64rem] uppercase tracking-[0.22em] text-slate-400">Mode</div>

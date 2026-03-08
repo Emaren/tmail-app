@@ -109,7 +109,7 @@ export const navigationSections: NavSection[] = [
         label: 'Contacts',
         description: 'Light CRM records, segments, and engagement context.',
         section: 'Growth',
-        state: 'staged',
+        state: 'live',
         icon: 'contacts',
       },
       {

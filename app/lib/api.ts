@@ -14,12 +14,15 @@ import {
   AlertItem,
   AnalyticsSummary,
   CampaignSummary,
+  ContactHistoryItem,
+  ContactSummary,
   DashboardOverview,
   DashboardShellData,
   DomainHealth,
   IdentityPerformance,
   IdentitySummary,
   MessageDetail,
+  MessageContact,
   MessageStatus,
   MessageSummary,
   OpenEvent,
@@ -80,6 +83,7 @@ interface MessageResponse {
   opens?: number;
   clicks?: number;
   replies?: number;
+  conversions?: number;
   error_message?: string | null;
   send_mode?: string;
   preheader?: string;
@@ -88,6 +92,28 @@ interface MessageResponse {
   recipients?: string[];
   provider_message_id?: string | null;
   tracked_links?: Array<{ token?: string; url?: string; label?: string | null; created_at?: string }>;
+  contacts?: Array<{
+    id?: string;
+    contact_id?: string;
+    email_address?: string;
+    display_name?: string;
+    company?: string;
+    tags?: string[];
+    contact_notes?: string;
+    delivery_status?: string;
+    inferred_open_count?: number;
+    inferred_click_count?: number;
+    reply_state?: string;
+    conversion_state?: string;
+    engagement_status?: string;
+    notes?: string;
+    sent_at?: string | null;
+    last_opened_at?: string | null;
+    last_clicked_at?: string | null;
+    last_replied_at?: string | null;
+    last_converted_at?: string | null;
+    updated_at?: string;
+  }>;
   events?: Array<{ id?: string; type?: string; occurred_at?: string; payload?: Record<string, unknown> }>;
 }
 
@@ -211,8 +237,43 @@ interface CampaignResponse {
   open_events?: number;
   click_events?: number;
   reply_events?: number;
+  conversion_events?: number;
   created_at?: string;
   updated_at?: string;
+}
+
+interface ContactResponse {
+  id: string;
+  email_address?: string;
+  display_name?: string;
+  company?: string;
+  tags?: string[];
+  source?: string;
+  notes?: string;
+  message_count?: number;
+  sent_count?: number;
+  open_count?: number;
+  click_count?: number;
+  reply_count?: number;
+  conversion_count?: number;
+  engagement_score?: number;
+  last_activity_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  history?: Array<{
+    message_id?: string;
+    subject?: string;
+    status?: string;
+    send_mode?: string;
+    delivery_status?: string;
+    inferred_open_count?: number;
+    inferred_click_count?: number;
+    reply_state?: string;
+    conversion_state?: string;
+    engagement_status?: string;
+    sent_at?: string | null;
+    updated_at?: string;
+  }>;
 }
 
 interface AnalyticsSummaryResponse {
@@ -221,9 +282,11 @@ interface AnalyticsSummaryResponse {
     sent_messages?: number;
     draft_messages?: number;
     review_messages?: number;
+    contacts_count?: number;
     open_events?: number;
     click_events?: number;
     reply_events?: number;
+    conversion_events?: number;
     seed_average_score?: number;
     active_campaigns?: number;
   } | null;
@@ -260,6 +323,7 @@ interface AnalyticsSummaryResponse {
     updated_at?: string;
   }>;
   campaigns?: CampaignResponse[];
+  top_contacts?: ContactResponse[];
 }
 
 interface DashboardSummaryResponse {
@@ -374,6 +438,7 @@ function normalizeMessage(item: MessageResponse): MessageSummary {
     opens: item.opens ?? 0,
     clicks: item.clicks ?? 0,
     replies: item.replies ?? 0,
+    conversions: item.conversions ?? 0,
     notes: item.error_message ?? item.preview ?? 'No notes.',
     sendMode: item.send_mode,
   };
@@ -391,6 +456,7 @@ function buildMockMessageDetail(messageId: string): MessageDetail | null {
     htmlBody: `<p>${found.preview}</p>`,
     textBody: found.preview,
     recipientsList: [],
+    contacts: [],
     providerMessageId: null,
     trackedLinks: [],
     events: [],
@@ -539,6 +605,31 @@ function normalizeSeedRunDetail(item: SeedRunResponse): SeedTestRunDetail {
   };
 }
 
+function normalizeMessageContact(item: NonNullable<MessageResponse['contacts']>[number]): MessageContact {
+  return {
+    id: item.id ?? `msgcontact-${item.contact_id ?? 'unknown'}`,
+    contactId: item.contact_id ?? '',
+    emailAddress: item.email_address ?? '',
+    displayName: item.display_name ?? '',
+    company: item.company ?? '',
+    tags: Array.isArray(item.tags) ? item.tags.filter((tag): tag is string => typeof tag === 'string') : [],
+    contactNotes: item.contact_notes ?? '',
+    deliveryStatus: item.delivery_status ?? 'draft',
+    inferredOpenCount: item.inferred_open_count ?? 0,
+    inferredClickCount: item.inferred_click_count ?? 0,
+    replyState: item.reply_state ?? '',
+    conversionState: item.conversion_state ?? '',
+    engagementStatus: item.engagement_status ?? '',
+    notes: item.notes ?? '',
+    sentAt: item.sent_at ?? null,
+    lastOpenedAt: item.last_opened_at ?? null,
+    lastClickedAt: item.last_clicked_at ?? null,
+    lastRepliedAt: item.last_replied_at ?? null,
+    lastConvertedAt: item.last_converted_at ?? null,
+    updatedAt: item.updated_at ?? new Date().toISOString(),
+  };
+}
+
 function normalizeOperator(item: OperatorResponse): OperatorSummary {
   return {
     id: item.id,
@@ -574,8 +665,49 @@ function normalizeCampaign(item: CampaignResponse): CampaignSummary {
     openEvents: item.open_events ?? 0,
     clickEvents: item.click_events ?? 0,
     replyEvents: item.reply_events ?? 0,
+    conversionEvents: item.conversion_events ?? 0,
     createdAt: item.created_at ?? new Date().toISOString(),
     updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeContactHistory(item: NonNullable<ContactResponse['history']>[number]): ContactHistoryItem {
+  return {
+    messageId: item.message_id ?? '',
+    subject: item.subject ?? 'Untitled message',
+    status: item.status ?? 'Draft',
+    sendMode: item.send_mode ?? 'draft',
+    deliveryStatus: item.delivery_status ?? 'draft',
+    inferredOpenCount: item.inferred_open_count ?? 0,
+    inferredClickCount: item.inferred_click_count ?? 0,
+    replyState: item.reply_state ?? '',
+    conversionState: item.conversion_state ?? '',
+    engagementStatus: item.engagement_status ?? '',
+    sentAt: item.sent_at ?? null,
+    updatedAt: item.updated_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeContact(item: ContactResponse): ContactSummary {
+  return {
+    id: item.id,
+    emailAddress: item.email_address ?? '',
+    displayName: item.display_name ?? '',
+    company: item.company ?? '',
+    tags: Array.isArray(item.tags) ? item.tags.filter((tag): tag is string => typeof tag === 'string') : [],
+    source: item.source ?? '',
+    notes: item.notes ?? '',
+    messageCount: item.message_count ?? 0,
+    sentCount: item.sent_count ?? 0,
+    openCount: item.open_count ?? 0,
+    clickCount: item.click_count ?? 0,
+    replyCount: item.reply_count ?? 0,
+    conversionCount: item.conversion_count ?? 0,
+    engagementScore: item.engagement_score ?? 0,
+    lastActivityAt: item.last_activity_at ?? null,
+    createdAt: item.created_at ?? new Date().toISOString(),
+    updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+    history: Array.isArray(item.history) ? item.history.map(normalizeContactHistory) : [],
   };
 }
 
@@ -649,9 +781,11 @@ function normalizeAnalyticsSummary(payload?: AnalyticsSummaryResponse | null): A
       sentMessages: overview?.sent_messages ?? 0,
       draftMessages: overview?.draft_messages ?? 0,
       reviewMessages: overview?.review_messages ?? 0,
+      contactsCount: overview?.contacts_count ?? 0,
       openEvents: overview?.open_events ?? 0,
       clickEvents: overview?.click_events ?? 0,
       replyEvents: overview?.reply_events ?? 0,
+      conversionEvents: overview?.conversion_events ?? 0,
       seedAverageScore: overview?.seed_average_score ?? 0,
       activeCampaigns: overview?.active_campaigns ?? 0,
     },
@@ -659,6 +793,7 @@ function normalizeAnalyticsSummary(payload?: AnalyticsSummaryResponse | null): A
     templatePerformance,
     seedRuns,
     campaigns,
+    topContacts: Array.isArray(payload?.top_contacts) ? payload.top_contacts.map(normalizeContact) : [],
   };
 }
 
@@ -724,6 +859,7 @@ export async function getMessageDetail(messageId: string): Promise<MessageDetail
     htmlBody: payload.html_body ?? '<p>No HTML body stored.</p>',
     textBody: payload.text_body ?? '',
     recipientsList: Array.isArray(payload.recipients) ? payload.recipients : [],
+    contacts: Array.isArray(payload.contacts) ? payload.contacts.map(normalizeMessageContact) : [],
     providerMessageId: payload.provider_message_id ?? null,
     trackedLinks: normalizeTrackedLinks(payload.tracked_links),
     events: Array.isArray(payload.events)
@@ -807,6 +943,19 @@ export async function getCampaigns(): Promise<CampaignSummary[]> {
     return [];
   }
   return payload.items.map(normalizeCampaign);
+}
+
+export async function getContacts(): Promise<ContactSummary[]> {
+  const payload = await fetchServerJson<{ items?: ContactResponse[] }>('/contacts');
+  if (!payload?.items?.length) {
+    return [];
+  }
+  return payload.items.map(normalizeContact);
+}
+
+export async function getContact(contactId: string): Promise<ContactSummary | null> {
+  const payload = await fetchServerJson<ContactResponse>(`/contacts/${contactId}`);
+  return payload ? normalizeContact(payload) : null;
 }
 
 export function getClientApiBase(): string {
