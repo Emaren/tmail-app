@@ -17,7 +17,12 @@ export default async function DashboardPage() {
       <section className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
         <StatCard title="Total opens" value={String(data.overview.totalOpens)} subtext="Soft signal only. Treat clicks and replies as stronger truth." tone="cyan" />
         <StatCard title="Unique IDs" value={String(data.overview.uniqueIds)} subtext="Current tracker history across the active dataset." />
-        <StatCard title="Most active identity" value={data.overview.mostActive?.id ?? 'Pending'} subtext={`${data.overview.mostActive?.count ?? 0} logged events`} />
+        <StatCard
+          title="Most active identity"
+          value={data.overview.mostActive?.id ?? 'Pending'}
+          subtext={`${data.overview.mostActive?.count ?? 0} logged events`}
+          valueClassName="w-full overflow-visible text-clip whitespace-normal break-all text-[1.95rem] leading-[0.94] tracking-[-0.06em] sm:text-[2.2rem] 2xl:text-[2.32rem]"
+        />
         <StatCard
           title="Latest open"
           value={data.overview.latestOpen?.user ?? 'Pending'}

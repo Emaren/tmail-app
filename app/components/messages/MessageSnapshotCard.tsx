@@ -99,32 +99,44 @@ export default function MessageSnapshotCard({ message, dense = false }: MessageS
       href={`/dashboard/messages/${message.id}`}
       className="block rounded-[26px] border border-white/8 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-cyan-200/20 hover:bg-white/[0.05] sm:p-6"
     >
-      <div className={dense ? 'grid gap-5 lg:grid-cols-[152px_minmax(0,1fr)] xl:gap-6' : 'grid gap-5 lg:grid-cols-[164px_minmax(0,1fr)] xl:gap-6'}>
+      <div className={dense ? 'grid gap-5 lg:grid-cols-[132px_minmax(0,1fr)] xl:gap-5' : 'grid gap-5 lg:grid-cols-[164px_minmax(0,1fr)] xl:gap-6'}>
         <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <div className="text-[0.62rem] uppercase tracking-[0.28em] text-cyan-200/65">{timeKicker(message)}</div>
           <div className="mt-3 text-[0.72rem] uppercase tracking-[0.24em] text-slate-400">{formatDateLabel(message.sentAt)}</div>
-          <div className="mt-3 font-display text-[2rem] leading-none text-white">{formatTimeLabel(message.sentAt)}</div>
+          <div className={dense ? 'mt-3 font-display text-[1.7rem] leading-none text-white' : 'mt-3 font-display text-[2rem] leading-none text-white'}>
+            {formatTimeLabel(message.sentAt)}
+          </div>
           <div className="mt-3 text-xs uppercase tracking-[0.2em] text-slate-500">America/Edmonton</div>
         </div>
 
         <div className="min-w-0">
-          <div className={dense ? 'grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start' : 'grid gap-5 xl:grid-cols-[minmax(0,1fr)_372px] xl:items-start'}>
+          <div className={dense ? 'grid gap-4 xl:grid-cols-[minmax(0,1fr)_220px] xl:items-start' : 'grid gap-5 xl:grid-cols-[minmax(0,1fr)_372px] xl:items-start'}>
             <div className="min-w-0 space-y-3 xl:pr-2">
               <div className="flex flex-wrap items-center gap-2.5">
                 <StatusPill label={message.status} state={statusTone(message.status)} />
                 <span
                   title={message.identity}
-                  className="max-w-full truncate text-[0.68rem] uppercase tracking-[0.24em] text-slate-400"
+                  className={dense ? 'max-w-[16ch] truncate text-[0.64rem] uppercase tracking-[0.22em] text-slate-400' : 'max-w-full truncate text-[0.68rem] uppercase tracking-[0.24em] text-slate-400'}
                 >
                   {message.identity}
                 </span>
               </div>
-              <h3 className="max-w-[28ch] break-anywhere text-lg font-semibold text-white sm:max-w-[34ch] sm:text-[1.1rem]">
+              <h3
+                className={[
+                  'break-anywhere font-semibold text-white',
+                  dense
+                    ? 'text-clamp-3 max-w-[18ch] text-[0.96rem] leading-[1.32] sm:max-w-[22ch] sm:text-[1rem]'
+                    : 'max-w-[28ch] text-lg sm:max-w-[34ch] sm:text-[1.1rem]',
+                ].join(' ')}
+              >
                 {message.subject}
               </h3>
               <p
                 title={message.preview}
-                className="break-anywhere text-clamp-2 max-w-[56ch] text-sm leading-6 text-slate-300/72"
+                className={[
+                  'break-anywhere text-clamp-2 text-slate-300/72',
+                  dense ? 'max-w-[26ch] text-[0.9rem] leading-7' : 'max-w-[56ch] text-sm leading-6',
+                ].join(' ')}
               >
                 {compactPreview(message.preview)}
               </p>
@@ -133,13 +145,13 @@ export default function MessageSnapshotCard({ message, dense = false }: MessageS
             <div
               className={[
                 'grid gap-3 rounded-[20px] border border-white/7 bg-black/10 p-4 text-left text-sm text-slate-300/72 xl:self-stretch',
-                dense ? 'grid-cols-2 sm:grid-cols-4 xl:grid-cols-2 xl:max-w-[300px]' : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-2 xl:max-w-[372px]',
+                dense ? 'grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-4 xl:grid-cols-2 xl:max-w-[220px]' : 'grid-cols-2 md:grid-cols-3 xl:grid-cols-2 xl:max-w-[372px]',
               ].join(' ')}
             >
               {stats.map(([label, value]) => (
                 <div key={`${message.id}-${label}`} className="min-w-0">
                   <div className="text-[0.64rem] uppercase tracking-[0.22em] text-slate-400">{label}</div>
-                  <div className="mt-2 truncate text-base text-white xl:text-[1.02rem]" title={value}>
+                  <div className={dense ? 'mt-2 truncate text-[0.96rem] text-white' : 'mt-2 truncate text-base text-white xl:text-[1.02rem]'} title={value}>
                     {value}
                   </div>
                 </div>
