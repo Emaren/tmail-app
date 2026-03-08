@@ -1,8 +1,8 @@
-import Link from 'next/link';
 import ChartCard from '@/components/dashboard/ChartCard';
 import OpensActivityChart from '@/components/dashboard/OpensActivityChart';
 import OpensPerUserChart from '@/components/dashboard/OpensPerUserChart';
 import StatCard from '@/components/dashboard/StatCard';
+import MessageSnapshotCard from '@/components/messages/MessageSnapshotCard';
 import Panel from '@/components/shell/Panel';
 import StatusPill from '@/components/shell/StatusPill';
 import { getDashboardShellData } from '@/lib/api';
@@ -40,40 +40,7 @@ export default async function DashboardPage() {
         <Panel title="Recent messages" kicker="Checkpoint queue">
           <div className="space-y-4">
             {data.messages.map((message) => (
-              <Link
-                key={message.id}
-                href={`/dashboard/messages/${message.id}`}
-                className="block rounded-[26px] border border-white/8 bg-white/[0.035] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:border-cyan-200/20 hover:bg-white/[0.05] sm:p-6"
-              >
-                <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusPill label={message.status} state={message.status === 'Needs Review' ? 'attention' : message.status === 'Draft' ? 'neutral' : 'healthy'} />
-                      <span className="text-xs uppercase tracking-[0.24em] text-slate-400">{message.identity}</span>
-                    </div>
-                    <h3 className="text-lg font-semibold text-white">{message.subject}</h3>
-                    <p className="max-w-2xl text-sm leading-6 text-slate-300/72">{message.preview}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-left text-sm text-slate-300/72 sm:grid-cols-4 xl:min-w-[320px] xl:text-right">
-                    <div>
-                      <div className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-400">Recipients</div>
-                      <div className="mt-2 text-base text-white">{message.recipients}</div>
-                    </div>
-                    <div>
-                      <div className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-400">Opens</div>
-                      <div className="mt-2 text-base text-white">{message.opens}</div>
-                    </div>
-                    <div>
-                      <div className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-400">Clicks</div>
-                      <div className="mt-2 text-base text-white">{message.clicks}</div>
-                    </div>
-                    <div>
-                      <div className="text-[0.65rem] uppercase tracking-[0.24em] text-slate-400">Replies</div>
-                      <div className="mt-2 text-base text-white">{message.replies}</div>
-                    </div>
-                  </div>
-                </div>
-              </Link>
+              <MessageSnapshotCard key={message.id} message={message} dense />
             ))}
           </div>
         </Panel>
