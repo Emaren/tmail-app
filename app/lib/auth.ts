@@ -9,7 +9,11 @@ const LOGIN_LOCK_SECONDS = 60 * 15;
 const MAX_LOGIN_ATTEMPTS = 5;
 
 export interface AdminSession {
+  id: string;
   username: string;
+  displayName: string;
+  role: string;
+  totpEnabled: boolean;
   exp: number;
 }
 
@@ -34,12 +38,8 @@ if (!globalThis.__tmailLoginAttempts) {
   globalThis.__tmailLoginAttempts = loginAttempts;
 }
 
-function getAuthConfig() {
-  return {
-    username: process.env.TMAIL_ADMIN_USERNAME?.trim() || 'tony',
-    password: process.env.TMAIL_ADMIN_PASSWORD?.trim() || '',
-    secret: process.env.TMAIL_SESSION_SECRET?.trim() || process.env.TMAIL_ADMIN_PASSWORD?.trim() || '',
-  };
+function getSessionSecret() {
+  return process.env.TMAIL_SESSION_SECRET?.trim() || process.env.TMAIL_ADMIN_PASSWORD?.trim() || '';
 }
 
 function base64UrlEncode(value: string) {
@@ -52,12 +52,6 @@ function base64UrlDecode(value: string) {
 
 function sign(data: string, secret: string) {
   return createHmac('sha256', secret).update(data).digest('base64url');
-}
-
-function safeCompare(left: string, right: string) {
-  const leftDigest = createHmac('sha256', 'tmail-compare').update(left).digest();
-  const rightDigest = createHmac('sha256', 'tmail-compare').update(right).digest();
-  return timingSafeEqual(leftDigest, rightDigest);
 }
 
 function normalizeLoginAttempts(identifier: string) {
@@ -77,24 +71,18 @@ function normalizeLoginAttempts(identifier: string) {
   return state;
 }
 
-export function isAuthConfigured() {
-  const config = getAuthConfig();
-  return Boolean(config.password && config.secret);
+export function isSessionConfigured() {
+  return Boolean(getSessionSecret());
 }
 
-export function validateAdminCredentials(username: string, password: string) {
-  const config = getAuthConfig();
-  return isAuthConfigured() && safeCompare(username, config.username) && safeCompare(password, config.password);
-}
-
-export function createSessionToken(username: string) {
-  const config = getAuthConfig();
+export function createSessionToken(session: Omit<AdminSession, 'exp'>) {
+  const secret = getSessionSecret();
   const payload: AdminSession = {
-    username,
+    ...session,
     exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
   };
   const encoded = base64UrlEncode(JSON.stringify(payload));
-  const signature = sign(encoded, config.secret);
+  const signature = sign(encoded, secret);
   return `${encoded}.${signature}`;
 }
 
@@ -103,8 +91,8 @@ export function verifySessionToken(token: string | undefined | null): AdminSessi
     return null;
   }
 
-  const config = getAuthConfig();
-  if (!config.secret) {
+  const secret = getSessionSecret();
+  if (!secret) {
     return null;
   }
 
@@ -113,7 +101,7 @@ export function verifySessionToken(token: string | undefined | null): AdminSessi
     return null;
   }
 
-  const expected = sign(encoded, config.secret);
+  const expected = sign(encoded, secret);
   const actualBuffer = Buffer.from(signature);
   const expectedBuffer = Buffer.from(expected);
   if (actualBuffer.length !== expectedBuffer.length || !timingSafeEqual(actualBuffer, expectedBuffer)) {
@@ -122,7 +110,7 @@ export function verifySessionToken(token: string | undefined | null): AdminSessi
 
   try {
     const payload = JSON.parse(base64UrlDecode(encoded)) as AdminSession;
-    if (!payload.username || !payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
+    if (!payload.id || !payload.username || !payload.exp || payload.exp < Math.floor(Date.now() / 1000)) {
       return null;
     }
     return payload;

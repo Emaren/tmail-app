@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import LoginForm from '@/components/auth/LoginForm';
-import { getSession, isAuthConfigured } from '@/lib/auth';
+import { getSession, isSessionConfigured } from '@/lib/auth';
+import { isServerApiConfigured } from '@/lib/server-api';
 
 export default async function LoginPage() {
   const session = await getSession();
@@ -8,7 +9,7 @@ export default async function LoginPage() {
     redirect('/dashboard');
   }
 
-  const configured = isAuthConfigured();
+  const configured = isSessionConfigured() && isServerApiConfigured();
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[1280px] items-center px-4 py-8 sm:px-6 lg:px-8">
@@ -38,7 +39,7 @@ export default async function LoginPage() {
             </div>
             <div className="rounded-[24px] border border-white/8 bg-white/[0.035] p-5">
               <p className="text-[0.62rem] uppercase tracking-[0.28em] text-slate-400">Build</p>
-              <div className="mt-3 text-lg font-semibold text-white">Seed lab + templates</div>
+              <div className="mt-3 text-lg font-semibold text-white">Operators + 2FA</div>
             </div>
           </div>
         </section>
@@ -48,7 +49,7 @@ export default async function LoginPage() {
           <p className="text-[0.68rem] uppercase tracking-[0.34em] text-slate-400">Admin auth</p>
           <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">Enter the castle</h2>
           <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300/74">
-            Use the configured TMail admin credentials to unlock the dashboard, proxy layer, identities, seed lab, and template surfaces.
+            Use your operator credentials to unlock the dashboard, proxy layer, identities, seed lab, analytics, campaigns, and security controls.
           </p>
 
           {configured ? (

@@ -211,3 +211,99 @@ export interface SeedTestRunSummary {
 export interface SeedTestRunDetail extends SeedTestRunSummary {
   results: SeedTestResult[];
 }
+
+export interface OperatorSummary {
+  id: string;
+  username: string;
+  displayName: string;
+  role: string;
+  isActive: boolean;
+  totpEnabled: boolean;
+  totpPending: boolean;
+  lastLoginAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TotpSetupState {
+  secret: string;
+  otpauthUri: string;
+}
+
+export interface AnalyticsOverview {
+  totalMessages: number;
+  sentMessages: number;
+  draftMessages: number;
+  reviewMessages: number;
+  openEvents: number;
+  clickEvents: number;
+  replyEvents: number;
+  seedAverageScore: number;
+  activeCampaigns: number;
+}
+
+export interface IdentityPerformance {
+  id: string;
+  label: string;
+  address: string;
+  totalMessages: number;
+  sentCount: number;
+  openEvents: number;
+  clickEvents: number;
+  replyEvents: number;
+  engagementScore: number;
+}
+
+export interface TemplatePerformance {
+  id: string;
+  name: string;
+  category: string;
+  totalMessages: number;
+  sentCount: number;
+  openEvents: number;
+  clickEvents: number;
+  replyEvents: number;
+}
+
+export interface SeedRunInsight {
+  id: string;
+  subject: string;
+  status: string;
+  overallScore: number;
+  acceptanceScore: number;
+  placementScore: number;
+  renderScore: number;
+  sentAt?: string | null;
+  updatedAt: string;
+}
+
+export interface CampaignSummary {
+  id: string;
+  name: string;
+  objective: string;
+  status: string;
+  identityId: string;
+  identity: string;
+  identityLabel: string;
+  templateId?: string | null;
+  templateName?: string | null;
+  audienceLabel: string;
+  sendWindow: string;
+  notes: string;
+  scheduledFor?: string | null;
+  messageCount: number;
+  sentCount: number;
+  openEvents: number;
+  clickEvents: number;
+  replyEvents: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnalyticsSummary {
+  overview: AnalyticsOverview;
+  identityPerformance: IdentityPerformance[];
+  templatePerformance: TemplatePerformance[];
+  seedRuns: SeedRunInsight[];
+  campaigns: CampaignSummary[];
+}

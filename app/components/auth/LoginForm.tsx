@@ -5,6 +5,7 @@ import { FormEvent, useState } from 'react';
 export default function LoginForm() {
   const [username, setUsername] = useState('tony');
   const [password, setPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,7 +18,7 @@ export default function LoginForm() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, totpCode }),
       });
       const payload = (await response.json()) as { error?: string; retryAfterSeconds?: number; remainingAttempts?: number };
       if (!response.ok) {
@@ -51,6 +52,17 @@ export default function LoginForm() {
         />
       </label>
 
+      <label className="block space-y-2 text-sm text-slate-300/78">
+        <span className="text-[0.68rem] uppercase tracking-[0.3em] text-slate-400">TOTP code</span>
+        <input
+          inputMode="numeric"
+          value={totpCode}
+          onChange={(event) => setTotpCode(event.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
+          className="w-full rounded-[20px] border border-white/10 bg-white/5 px-4 py-3 text-white outline-none"
+          placeholder="Optional until enabled"
+        />
+      </label>
+
       {error ? <div className="rounded-[18px] border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm text-rose-100">{error}</div> : null}
 
       <button
@@ -62,7 +74,7 @@ export default function LoginForm() {
       </button>
 
       <p className="text-xs leading-6 text-slate-400">
-        Failed attempts are throttled to protect the private operator surface.
+        Failed attempts are throttled. Once TOTP is enabled for your operator account, this field becomes required.
       </p>
     </form>
   );

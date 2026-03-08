@@ -12,22 +12,29 @@ import {
 } from '@/lib/mock-data';
 import {
   AlertItem,
+  AnalyticsSummary,
+  CampaignSummary,
   DashboardOverview,
   DashboardShellData,
   DomainHealth,
+  IdentityPerformance,
   IdentitySummary,
   MessageDetail,
   MessageStatus,
   MessageSummary,
   OpenEvent,
+  OperatorSummary,
+  SeedRunInsight,
   SeedInboxSummary,
   SeedPreview,
   SeedTestResult,
   SeedTestRunDetail,
   SeedTestRunSummary,
+  TemplatePerformance,
   TemplateSummary,
   TemplateVersionSummary,
   TopUser,
+  TotpSetupState,
   TrackedLink,
 } from '@/lib/types';
 
@@ -170,6 +177,89 @@ interface SeedRunResponse {
   updated_at?: string;
   sent_at?: string | null;
   results?: SeedResultResponse[];
+}
+
+interface OperatorResponse {
+  id: string;
+  username?: string;
+  display_name?: string;
+  role?: string;
+  is_active?: boolean;
+  totp_enabled?: boolean;
+  totp_pending?: boolean;
+  last_login_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface CampaignResponse {
+  id: string;
+  name?: string;
+  objective?: string;
+  status?: string;
+  identity_id?: string;
+  identity?: string;
+  identity_label?: string;
+  template_id?: string | null;
+  template_name?: string | null;
+  audience_label?: string;
+  send_window?: string;
+  notes?: string;
+  scheduled_for?: string | null;
+  message_count?: number;
+  sent_count?: number;
+  open_events?: number;
+  click_events?: number;
+  reply_events?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface AnalyticsSummaryResponse {
+  overview?: {
+    total_messages?: number;
+    sent_messages?: number;
+    draft_messages?: number;
+    review_messages?: number;
+    open_events?: number;
+    click_events?: number;
+    reply_events?: number;
+    seed_average_score?: number;
+    active_campaigns?: number;
+  } | null;
+  identity_performance?: Array<{
+    id?: string;
+    label?: string;
+    address?: string;
+    total_messages?: number;
+    sent_count?: number;
+    open_events?: number;
+    click_events?: number;
+    reply_events?: number;
+    engagement_score?: number;
+  }>;
+  template_performance?: Array<{
+    id?: string;
+    name?: string;
+    category?: string;
+    total_messages?: number;
+    sent_count?: number;
+    open_events?: number;
+    click_events?: number;
+    reply_events?: number;
+  }>;
+  seed_runs?: Array<{
+    id?: string;
+    subject?: string;
+    status?: string;
+    overall_score?: number;
+    acceptance_score?: number;
+    placement_score?: number;
+    render_score?: number;
+    sent_at?: string | null;
+    updated_at?: string;
+  }>;
+  campaigns?: CampaignResponse[];
 }
 
 interface DashboardSummaryResponse {
@@ -449,6 +539,129 @@ function normalizeSeedRunDetail(item: SeedRunResponse): SeedTestRunDetail {
   };
 }
 
+function normalizeOperator(item: OperatorResponse): OperatorSummary {
+  return {
+    id: item.id,
+    username: item.username ?? 'operator',
+    displayName: item.display_name ?? item.username ?? 'Operator',
+    role: item.role ?? 'admin',
+    isActive: item.is_active ?? true,
+    totpEnabled: item.totp_enabled ?? false,
+    totpPending: item.totp_pending ?? false,
+    lastLoginAt: item.last_login_at ?? null,
+    createdAt: item.created_at ?? new Date().toISOString(),
+    updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeCampaign(item: CampaignResponse): CampaignSummary {
+  return {
+    id: item.id,
+    name: item.name ?? 'Untitled campaign',
+    objective: item.objective ?? '',
+    status: item.status ?? 'draft',
+    identityId: item.identity_id ?? '',
+    identity: item.identity ?? 'unknown',
+    identityLabel: item.identity_label ?? 'Identity',
+    templateId: item.template_id ?? null,
+    templateName: item.template_name ?? null,
+    audienceLabel: item.audience_label ?? '',
+    sendWindow: item.send_window ?? '',
+    notes: item.notes ?? '',
+    scheduledFor: item.scheduled_for ?? null,
+    messageCount: item.message_count ?? 0,
+    sentCount: item.sent_count ?? 0,
+    openEvents: item.open_events ?? 0,
+    clickEvents: item.click_events ?? 0,
+    replyEvents: item.reply_events ?? 0,
+    createdAt: item.created_at ?? new Date().toISOString(),
+    updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeAnalyticsSummary(payload?: AnalyticsSummaryResponse | null): AnalyticsSummary {
+  const overview = payload?.overview;
+
+  const identityPerformance: IdentityPerformance[] = Array.isArray(payload?.identity_performance)
+    ? payload.identity_performance.flatMap((item) =>
+        item.id
+          ? [
+              {
+                id: item.id,
+                label: item.label ?? 'Identity',
+                address: item.address ?? 'unknown',
+                totalMessages: item.total_messages ?? 0,
+                sentCount: item.sent_count ?? 0,
+                openEvents: item.open_events ?? 0,
+                clickEvents: item.click_events ?? 0,
+                replyEvents: item.reply_events ?? 0,
+                engagementScore: item.engagement_score ?? 0,
+              },
+            ]
+          : [],
+      )
+    : [];
+
+  const templatePerformance: TemplatePerformance[] = Array.isArray(payload?.template_performance)
+    ? payload.template_performance.flatMap((item) =>
+        item.id
+          ? [
+              {
+                id: item.id,
+                name: item.name ?? 'Template',
+                category: item.category ?? 'General',
+                totalMessages: item.total_messages ?? 0,
+                sentCount: item.sent_count ?? 0,
+                openEvents: item.open_events ?? 0,
+                clickEvents: item.click_events ?? 0,
+                replyEvents: item.reply_events ?? 0,
+              },
+            ]
+          : [],
+      )
+    : [];
+
+  const seedRuns: SeedRunInsight[] = Array.isArray(payload?.seed_runs)
+    ? payload.seed_runs.flatMap((item) =>
+        item.id
+          ? [
+              {
+                id: item.id,
+                subject: item.subject ?? 'Seed run',
+                status: item.status ?? 'pending',
+                overallScore: item.overall_score ?? 0,
+                acceptanceScore: item.acceptance_score ?? 0,
+                placementScore: item.placement_score ?? 0,
+                renderScore: item.render_score ?? 0,
+                sentAt: item.sent_at ?? null,
+                updatedAt: item.updated_at ?? new Date().toISOString(),
+              },
+            ]
+          : [],
+      )
+    : [];
+
+  const campaigns = Array.isArray(payload?.campaigns) ? payload.campaigns.map(normalizeCampaign) : [];
+
+  return {
+    overview: {
+      totalMessages: overview?.total_messages ?? 0,
+      sentMessages: overview?.sent_messages ?? 0,
+      draftMessages: overview?.draft_messages ?? 0,
+      reviewMessages: overview?.review_messages ?? 0,
+      openEvents: overview?.open_events ?? 0,
+      clickEvents: overview?.click_events ?? 0,
+      replyEvents: overview?.reply_events ?? 0,
+      seedAverageScore: overview?.seed_average_score ?? 0,
+      activeCampaigns: overview?.active_campaigns ?? 0,
+    },
+    identityPerformance,
+    templatePerformance,
+    seedRuns,
+    campaigns,
+  };
+}
+
 export async function getDashboardShellData(): Promise<DashboardShellData> {
   const payload = await fetchServerJson<DashboardSummaryResponse>('/dashboard/summary');
 
@@ -573,6 +786,27 @@ export async function getSeedRuns(): Promise<SeedTestRunSummary[]> {
 export async function getSeedRun(runId: string): Promise<SeedTestRunDetail | null> {
   const payload = await fetchServerJson<SeedRunResponse>(`/seed-tests/runs/${runId}`);
   return payload ? normalizeSeedRunDetail(payload) : null;
+}
+
+export async function getOperators(): Promise<OperatorSummary[]> {
+  const payload = await fetchServerJson<{ items?: OperatorResponse[] }>('/auth/operators');
+  if (!payload?.items?.length) {
+    return [];
+  }
+  return payload.items.map(normalizeOperator);
+}
+
+export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
+  const payload = await fetchServerJson<AnalyticsSummaryResponse>('/analytics/summary');
+  return normalizeAnalyticsSummary(payload);
+}
+
+export async function getCampaigns(): Promise<CampaignSummary[]> {
+  const payload = await fetchServerJson<{ items?: CampaignResponse[] }>('/campaigns');
+  if (!payload?.items?.length) {
+    return [];
+  }
+  return payload.items.map(normalizeCampaign);
 }
 
 export function getClientApiBase(): string {

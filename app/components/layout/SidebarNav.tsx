@@ -171,7 +171,7 @@ export default function SidebarNav() {
         <div className="relative mt-8 rounded-[26px] border border-amber-300/14 bg-[linear-gradient(180deg,rgba(252,211,77,0.07),rgba(8,14,24,0.35))] p-5 text-sm text-slate-200/78">
           <p className="text-[0.66rem] uppercase tracking-[0.28em] text-amber-100/68">Build Mode</p>
           <p className="mt-3 leading-6">
-            Admin auth, templates, and seed lab are now part of the live surface. Campaigns, contacts, and deeper analytics remain the next structural pieces.
+            Operator accounts, TOTP controls, templates, seed lab, campaigns, and analytics are all live surfaces now. Contacts remain the next structural piece.
           </p>
           <button
             onClick={logout}

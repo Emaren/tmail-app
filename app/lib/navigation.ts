@@ -101,7 +101,7 @@ export const navigationSections: NavSection[] = [
         label: 'Campaigns',
         description: 'Sequences, batch sends, and follow-up logic across identities.',
         section: 'Growth',
-        state: 'staged',
+        state: 'live',
         icon: 'campaigns',
       },
       {
@@ -117,7 +117,7 @@ export const navigationSections: NavSection[] = [
         label: 'Analytics',
         description: 'Cross-message performance, link stats, and operator learnings.',
         section: 'Growth',
-        state: 'staged',
+        state: 'live',
         icon: 'analytics',
       },
     ],
@@ -128,7 +128,7 @@ export const navigationSections: NavSection[] = [
       {
         href: '/dashboard/settings',
         label: 'Settings',
-        description: 'Environment defaults, operating rules, and next backend milestones.',
+        description: 'Operator accounts, security posture, and TOTP controls.',
         section: 'Control',
         state: 'live',
         icon: 'settings',

@@ -137,6 +137,7 @@ export default function ComposeWorkbench({ identities, templates, apiBase }: Com
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           identity_id: selectedIdentity,
+          template_id: selectedTemplateId || undefined,
           recipients: recipients.split(',').map((entry) => entry.trim()).filter(Boolean),
           subject,
           preheader,
