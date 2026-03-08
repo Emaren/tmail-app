@@ -14,6 +14,7 @@ import {
   AlertItem,
   AnalyticsSummary,
   CampaignSummary,
+  CampaignRunSummary,
   ContactHistoryItem,
   ContactSummary,
   DashboardOverview,
@@ -229,6 +230,8 @@ interface CampaignResponse {
   template_id?: string | null;
   template_name?: string | null;
   audience_label?: string;
+  audience_emails?: string;
+  audience_count?: number;
   send_window?: string;
   notes?: string;
   scheduled_for?: string | null;
@@ -238,6 +241,24 @@ interface CampaignResponse {
   click_events?: number;
   reply_events?: number;
   conversion_events?: number;
+  last_run?: CampaignRunResponse | null;
+  recent_runs?: CampaignRunResponse[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface CampaignRunResponse {
+  id: string;
+  campaign_id?: string;
+  message_id?: string | null;
+  mode?: string;
+  trigger_type?: string;
+  status?: string;
+  recipient_count?: number;
+  sent_count?: number;
+  summary?: string;
+  started_at?: string;
+  completed_at?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -657,6 +678,8 @@ function normalizeCampaign(item: CampaignResponse): CampaignSummary {
     templateId: item.template_id ?? null,
     templateName: item.template_name ?? null,
     audienceLabel: item.audience_label ?? '',
+    audienceEmails: item.audience_emails ?? '',
+    audienceCount: item.audience_count ?? 0,
     sendWindow: item.send_window ?? '',
     notes: item.notes ?? '',
     scheduledFor: item.scheduled_for ?? null,
@@ -666,8 +689,28 @@ function normalizeCampaign(item: CampaignResponse): CampaignSummary {
     clickEvents: item.click_events ?? 0,
     replyEvents: item.reply_events ?? 0,
     conversionEvents: item.conversion_events ?? 0,
+    lastRun: item.last_run ? normalizeCampaignRun(item.last_run) : null,
+    recentRuns: Array.isArray(item.recent_runs) ? item.recent_runs.map(normalizeCampaignRun) : [],
     createdAt: item.created_at ?? new Date().toISOString(),
     updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeCampaignRun(item: CampaignRunResponse): CampaignRunSummary {
+  return {
+    id: item.id,
+    campaignId: item.campaign_id ?? '',
+    messageId: item.message_id ?? null,
+    mode: item.mode ?? 'live',
+    triggerType: item.trigger_type ?? 'manual',
+    status: item.status ?? 'pending',
+    recipientCount: item.recipient_count ?? 0,
+    sentCount: item.sent_count ?? 0,
+    summary: item.summary ?? '',
+    startedAt: item.started_at ?? new Date().toISOString(),
+    completedAt: item.completed_at ?? null,
+    createdAt: item.created_at ?? item.started_at ?? new Date().toISOString(),
+    updatedAt: item.updated_at ?? item.completed_at ?? item.started_at ?? new Date().toISOString(),
   };
 }
 

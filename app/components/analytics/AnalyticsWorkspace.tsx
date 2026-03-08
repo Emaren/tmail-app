@@ -107,7 +107,7 @@ export default function AnalyticsWorkspace({ data }: { data: AnalyticsSummary })
                     <h3 className="text-base font-semibold text-white">{campaign.name}</h3>
                     <p className="mt-1 text-sm text-slate-300/72">{campaign.objective}</p>
                   </div>
-                  <StatusPill label={campaign.status} state={campaign.status === 'live' ? 'healthy' : campaign.status === 'ready' || campaign.status === 'scheduled' ? 'attention' : 'neutral'} />
+                  <StatusPill label={campaign.status} state={campaign.status === 'live' || campaign.status === 'completed' ? 'healthy' : campaign.status === 'ready' || campaign.status === 'scheduled' ? 'attention' : 'neutral'} />
                 </div>
                 <div className="mt-4 text-sm leading-6 text-slate-300/74">
                     <div>{campaign.identity}</div>

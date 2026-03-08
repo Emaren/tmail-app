@@ -315,6 +315,8 @@ export interface CampaignSummary {
   templateId?: string | null;
   templateName?: string | null;
   audienceLabel: string;
+  audienceEmails: string;
+  audienceCount: number;
   sendWindow: string;
   notes: string;
   scheduledFor?: string | null;
@@ -324,6 +326,24 @@ export interface CampaignSummary {
   clickEvents: number;
   replyEvents: number;
   conversionEvents: number;
+  lastRun?: CampaignRunSummary | null;
+  recentRuns: CampaignRunSummary[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CampaignRunSummary {
+  id: string;
+  campaignId: string;
+  messageId?: string | null;
+  mode: string;
+  triggerType: string;
+  status: string;
+  recipientCount: number;
+  sentCount: number;
+  summary: string;
+  startedAt: string;
+  completedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
