@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { useState } from 'react';
 import Panel from '@/components/shell/Panel';
 import StatusPill from '@/components/shell/StatusPill';
-import { CampaignRunSummary, CampaignSchedulerStatus, CampaignSummary, IdentitySummary, TemplateSummary } from '@/lib/types';
+import { CampaignRunSummary, CampaignSchedulerStatus, CampaignSummary, IdentitySummary, SegmentSummary, TemplateSummary } from '@/lib/types';
 
 interface CampaignWorkspaceProps {
   campaigns: CampaignSummary[];
   identities: IdentitySummary[];
   templates: TemplateSummary[];
+  segments: SegmentSummary[];
   scheduler: CampaignSchedulerStatus;
   apiBase: string;
 }
@@ -42,9 +43,13 @@ interface CampaignApiPayload {
   identity_label?: string;
   template_id?: string | null;
   template_name?: string | null;
+  audience_source?: 'manual' | 'segment';
+  segment_id?: string | null;
+  segment_name?: string | null;
   audience_label?: string;
   audience_emails?: string;
   audience_count?: number;
+  segment_contact_emails?: string[];
   send_window?: string;
   notes?: string;
   scheduled_for?: string | null;
@@ -115,9 +120,13 @@ function normalizeCampaign(payload: CampaignApiPayload): CampaignSummary {
     identityLabel: payload.identity_label ?? 'Identity',
     templateId: payload.template_id ?? null,
     templateName: payload.template_name ?? null,
+    audienceSource: payload.audience_source ?? 'manual',
+    segmentId: payload.segment_id ?? null,
+    segmentName: payload.segment_name ?? null,
     audienceLabel: payload.audience_label ?? '',
     audienceEmails: payload.audience_emails ?? '',
     audienceCount: payload.audience_count ?? 0,
+    segmentContactEmails: Array.isArray(payload.segment_contact_emails) ? payload.segment_contact_emails : [],
     sendWindow: payload.send_window ?? '',
     notes: payload.notes ?? '',
     scheduledFor: payload.scheduled_for ?? null,
@@ -225,7 +234,7 @@ function schedulerState(status: string) {
   return 'neutral' as const;
 }
 
-export default function CampaignWorkspace({ campaigns: initialCampaigns, identities, templates, scheduler: initialScheduler, apiBase }: CampaignWorkspaceProps) {
+export default function CampaignWorkspace({ campaigns: initialCampaigns, identities, templates, segments, scheduler: initialScheduler, apiBase }: CampaignWorkspaceProps) {
   const [campaigns, setCampaigns] = useState(initialCampaigns);
   const [scheduler, setScheduler] = useState(initialScheduler);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -235,6 +244,8 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
     objective: '',
     identityId: identities[0]?.id ?? '',
     templateId: templates[0]?.id ?? '',
+    audienceSource: 'manual' as 'manual' | 'segment',
+    segmentId: segments[0]?.id ?? '',
     audienceLabel: 'Founders / hand-picked',
     audienceEmails: '',
     sendWindow: 'Weekdays 09:00-11:00 local',
@@ -275,8 +286,10 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
           objective: form.objective,
           identity_id: form.identityId,
           template_id: form.templateId,
+          audience_source: form.audienceSource,
+          segment_id: form.audienceSource === 'segment' ? form.segmentId : undefined,
           audience_label: form.audienceLabel,
-          audience_emails: form.audienceEmails,
+          audience_emails: form.audienceSource === 'manual' ? form.audienceEmails : '',
           send_window: form.sendWindow,
           notes: form.notes,
           scheduled_for: toUtcIso(form.scheduledFor) || undefined,
@@ -288,6 +301,8 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
         ...current,
         name: '',
         objective: '',
+        audienceSource: 'manual',
+        segmentId: segments[0]?.id ?? '',
         audienceEmails: '',
         notes: '',
         scheduledFor: '',
@@ -310,8 +325,10 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
           objective: campaign.objective,
           identity_id: campaign.identityId,
           template_id: campaign.templateId,
+          audience_source: campaign.audienceSource,
+          segment_id: campaign.segmentId || undefined,
           audience_label: campaign.audienceLabel,
-          audience_emails: campaign.audienceEmails,
+          audience_emails: campaign.audienceSource === 'manual' ? campaign.audienceEmails : '',
           send_window: campaign.sendWindow,
           notes: campaign.notes,
           scheduled_for: campaign.scheduledFor || undefined,
@@ -409,7 +426,7 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
                 <div className="mt-4 grid gap-3 text-sm text-slate-300/74 sm:grid-cols-2 lg:grid-cols-4">
                   <div><div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Identity</div><div className="mt-2 text-white">{campaign.identity}</div></div>
                   <div><div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Template</div><div className="mt-2 text-white">{campaign.templateName ?? 'Unlinked'}</div></div>
-                  <div><div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Audience</div><div className="mt-2 text-white">{campaign.audienceLabel}</div></div>
+                  <div><div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Audience</div><div className="mt-2 text-white">{campaign.audienceLabel}</div><div className="mt-1 text-xs text-slate-500">{campaign.audienceSource === 'segment' ? `Segment: ${campaign.segmentName ?? 'Unlinked'}` : 'Manual list'}</div></div>
                   <div><div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Recipients</div><div className="mt-2 text-white">{campaign.audienceCount}</div></div>
                 </div>
 
@@ -423,6 +440,11 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
                 <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto] md:items-start">
                   <div className="space-y-2 text-sm leading-6 text-slate-300/74">
                     <div>{campaign.openEvents} opens · {campaign.clickEvents} clicks · {campaign.replyEvents} replies · {campaign.conversionEvents} conversions</div>
+                    {campaign.audienceSource === 'segment' ? (
+                      <div className="text-slate-400">
+                        Segment-backed audience. Preview: {campaign.segmentContactEmails.length ? campaign.segmentContactEmails.join(', ') : 'No contacts match this segment yet.'}
+                      </div>
+                    ) : null}
                     <div className="text-slate-400">{campaign.notes || 'No operator notes yet.'}</div>
                     {campaign.lastRun ? (
                       <div className="rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
@@ -592,16 +614,50 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
               <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Audience label</span>
               <input value={form.audienceLabel} onChange={(event) => setForm((current) => ({ ...current, audienceLabel: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" />
             </label>
-            <label className="space-y-2 text-sm text-slate-300/78">
-              <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Audience emails</span>
-              <textarea
-                value={form.audienceEmails}
-                onChange={(event) => setForm((current) => ({ ...current, audienceEmails: event.target.value }))}
-                rows={6}
-                className="w-full rounded-[24px] border border-white/10 bg-white/5 px-4 py-4 text-white outline-none"
-                placeholder={'lead-one@example.com\nlead-two@example.com'}
-              />
-            </label>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <label className="space-y-2 text-sm text-slate-300/78">
+                <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Audience source</span>
+                <select value={form.audienceSource} onChange={(event) => setForm((current) => ({ ...current, audienceSource: event.target.value as 'manual' | 'segment' }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none">
+                  <option value="manual">Manual list</option>
+                  <option value="segment">Saved segment</option>
+                </select>
+              </label>
+              {form.audienceSource === 'segment' ? (
+                <label className="space-y-2 text-sm text-slate-300/78">
+                  <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Segment</span>
+                  <select value={form.segmentId} onChange={(event) => setForm((current) => ({ ...current, segmentId: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none">
+                    {segments.map((segment) => <option key={segment.id} value={segment.id}>{segment.name} ({segment.contactCount})</option>)}
+                  </select>
+                </label>
+              ) : null}
+            </div>
+            {form.audienceSource === 'manual' ? (
+              <label className="space-y-2 text-sm text-slate-300/78">
+                <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Audience emails</span>
+                <textarea
+                  value={form.audienceEmails}
+                  onChange={(event) => setForm((current) => ({ ...current, audienceEmails: event.target.value }))}
+                  rows={6}
+                  className="w-full rounded-[24px] border border-white/10 bg-white/5 px-4 py-4 text-white outline-none"
+                  placeholder={'lead-one@example.com\nlead-two@example.com'}
+                />
+              </label>
+            ) : (
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-slate-300/74">
+                {segments.length ? (
+                  <>
+                    Segment recipients will resolve from the contact ledger at send time.
+                    <div className="mt-2 text-xs text-slate-500">
+                      Current preview: {segments.find((segment) => segment.id === form.segmentId)?.contactEmails.join(', ') || 'No contacts match the selected segment yet.'}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    No saved segments exist yet. Create one in <Link href="/dashboard/contacts" className="text-cyan-200">Contacts</Link> or switch back to a manual list.
+                  </>
+                )}
+              </div>
+            )}
             <div className="grid gap-4 lg:grid-cols-2">
               <label className="space-y-2 text-sm text-slate-300/78">
                 <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Send window</span>
@@ -631,8 +687,9 @@ export default function CampaignWorkspace({ campaigns: initialCampaigns, identit
 
         <Panel title="Build guidance" kicker="What this surface now does">
           <div className="space-y-3 text-sm leading-6 text-slate-300/74">
-            <p>Campaigns are no longer just saved intent. `Launch now` creates one live send per listed recipient using the linked template and identity.</p>
+            <p>Campaigns are no longer just saved intent. `Launch now` creates one live send per resolved recipient using the linked template and identity.</p>
             <p>`Run scheduler now` executes anything marked `scheduled` whose UTC-normalized scheduled time has passed. The VPS timer uses the same runner path.</p>
+            <p>Audiences can now come from a manual email list or from reusable contact segments driven by contact tags.</p>
             <p>
               For placement proof, use <Link href="/dashboard/seed-tests" className="text-cyan-200">Seed Tests</Link>. For ad-hoc one-offs and manual edits, use <Link href="/dashboard/compose" className="text-cyan-200">Compose</Link>.
             </p>

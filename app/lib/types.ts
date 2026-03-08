@@ -304,6 +304,26 @@ export interface SeedRunInsight {
   updatedAt: string;
 }
 
+export interface SegmentPreviewContact {
+  id: string;
+  emailAddress: string;
+  displayName: string;
+  company: string;
+}
+
+export interface SegmentSummary {
+  id: string;
+  name: string;
+  description: string;
+  matchMode: 'any' | 'all';
+  tags: string[];
+  contactCount: number;
+  contactEmails: string[];
+  contactsPreview: SegmentPreviewContact[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CampaignSummary {
   id: string;
   name: string;
@@ -314,9 +334,13 @@ export interface CampaignSummary {
   identityLabel: string;
   templateId?: string | null;
   templateName?: string | null;
+  audienceSource: 'manual' | 'segment';
+  segmentId?: string | null;
+  segmentName?: string | null;
   audienceLabel: string;
   audienceEmails: string;
   audienceCount: number;
+  segmentContactEmails: string[];
   sendWindow: string;
   notes: string;
   scheduledFor?: string | null;

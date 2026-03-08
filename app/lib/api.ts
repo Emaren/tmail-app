@@ -36,6 +36,7 @@ import {
   SeedTestResult,
   SeedTestRunDetail,
   SeedTestRunSummary,
+  SegmentSummary,
   TemplatePerformance,
   TemplateSummary,
   TemplateVersionSummary,
@@ -231,9 +232,13 @@ interface CampaignResponse {
   identity_label?: string;
   template_id?: string | null;
   template_name?: string | null;
+  audience_source?: 'manual' | 'segment';
+  segment_id?: string | null;
+  segment_name?: string | null;
   audience_label?: string;
   audience_emails?: string;
   audience_count?: number;
+  segment_contact_emails?: string[];
   send_window?: string;
   notes?: string;
   scheduled_for?: string | null;
@@ -245,6 +250,24 @@ interface CampaignResponse {
   conversion_events?: number;
   last_run?: CampaignRunResponse | null;
   recent_runs?: CampaignRunResponse[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface SegmentResponse {
+  id: string;
+  name?: string;
+  description?: string;
+  match_mode?: 'any' | 'all';
+  tags?: string[];
+  contact_count?: number;
+  contact_emails?: string[];
+  contacts_preview?: Array<{
+    id?: string;
+    email_address?: string;
+    display_name?: string;
+    company?: string;
+  }>;
   created_at?: string;
   updated_at?: string;
 }
@@ -705,9 +728,13 @@ function normalizeCampaign(item: CampaignResponse): CampaignSummary {
     identityLabel: item.identity_label ?? 'Identity',
     templateId: item.template_id ?? null,
     templateName: item.template_name ?? null,
+    audienceSource: item.audience_source ?? 'manual',
+    segmentId: item.segment_id ?? null,
+    segmentName: item.segment_name ?? null,
     audienceLabel: item.audience_label ?? '',
     audienceEmails: item.audience_emails ?? '',
     audienceCount: item.audience_count ?? 0,
+    segmentContactEmails: Array.isArray(item.segment_contact_emails) ? item.segment_contact_emails : [],
     sendWindow: item.send_window ?? '',
     notes: item.notes ?? '',
     scheduledFor: item.scheduled_for ?? null,
@@ -719,6 +746,34 @@ function normalizeCampaign(item: CampaignResponse): CampaignSummary {
     conversionEvents: item.conversion_events ?? 0,
     lastRun: item.last_run ? normalizeCampaignRun(item.last_run) : null,
     recentRuns: Array.isArray(item.recent_runs) ? item.recent_runs.map(normalizeCampaignRun) : [],
+    createdAt: item.created_at ?? new Date().toISOString(),
+    updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeSegment(item: SegmentResponse): SegmentSummary {
+  return {
+    id: item.id,
+    name: item.name ?? 'Untitled segment',
+    description: item.description ?? '',
+    matchMode: item.match_mode ?? 'any',
+    tags: Array.isArray(item.tags) ? item.tags.filter((tag): tag is string => typeof tag === 'string') : [],
+    contactCount: item.contact_count ?? 0,
+    contactEmails: Array.isArray(item.contact_emails) ? item.contact_emails.filter((email): email is string => typeof email === 'string') : [],
+    contactsPreview: Array.isArray(item.contacts_preview)
+      ? item.contacts_preview.flatMap((contact) =>
+          contact.id && contact.email_address
+            ? [
+                {
+                  id: contact.id,
+                  emailAddress: contact.email_address,
+                  displayName: contact.display_name ?? '',
+                  company: contact.company ?? '',
+                },
+              ]
+            : [],
+        )
+      : [],
     createdAt: item.created_at ?? new Date().toISOString(),
     updatedAt: item.updated_at ?? item.created_at ?? new Date().toISOString(),
   };
@@ -1057,6 +1112,14 @@ export async function getContacts(): Promise<ContactSummary[]> {
     return [];
   }
   return payload.items.map(normalizeContact);
+}
+
+export async function getSegments(): Promise<SegmentSummary[]> {
+  const payload = await fetchServerJson<{ items?: SegmentResponse[] }>('/segments');
+  if (!payload?.items?.length) {
+    return [];
+  }
+  return payload.items.map(normalizeSegment);
 }
 
 export async function getContact(contactId: string): Promise<ContactSummary | null> {

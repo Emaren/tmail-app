@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import Panel from '@/components/shell/Panel';
 import StatusPill from '@/components/shell/StatusPill';
-import { ContactSummary } from '@/lib/types';
+import { ContactSummary, SegmentSummary } from '@/lib/types';
 
 interface ContactsWorkspaceProps {
   contacts: ContactSummary[];
+  segments: SegmentSummary[];
   apiBase: string;
 }
 
@@ -43,6 +44,24 @@ interface ContactApiPayload {
     sent_at?: string | null;
     updated_at?: string;
   }>;
+}
+
+interface SegmentApiPayload {
+  id: string;
+  name?: string;
+  description?: string;
+  match_mode?: 'any' | 'all';
+  tags?: string[];
+  contact_count?: number;
+  contact_emails?: string[];
+  contacts_preview?: Array<{
+    id?: string;
+    email_address?: string;
+    display_name?: string;
+    company?: string;
+  }>;
+  created_at?: string;
+  updated_at?: string;
 }
 
 function formatDate(value?: string | null) {
@@ -93,13 +112,45 @@ function normalizeContact(payload: ContactApiPayload): ContactSummary {
   };
 }
 
-export default function ContactsWorkspace({ contacts: initialContacts, apiBase }: ContactsWorkspaceProps) {
+function normalizeSegment(payload: SegmentApiPayload): SegmentSummary {
+  return {
+    id: payload.id,
+    name: payload.name ?? 'Untitled segment',
+    description: payload.description ?? '',
+    matchMode: payload.match_mode ?? 'any',
+    tags: Array.isArray(payload.tags) ? payload.tags.filter((tag): tag is string => typeof tag === 'string') : [],
+    contactCount: payload.contact_count ?? 0,
+    contactEmails: Array.isArray(payload.contact_emails)
+      ? payload.contact_emails.filter((email): email is string => typeof email === 'string')
+      : [],
+    contactsPreview: Array.isArray(payload.contacts_preview)
+      ? payload.contacts_preview.flatMap((contact) =>
+          contact.id && contact.email_address
+            ? [{
+                id: contact.id,
+                emailAddress: contact.email_address,
+                displayName: contact.display_name ?? '',
+                company: contact.company ?? '',
+              }]
+            : [],
+        )
+      : [],
+    createdAt: payload.created_at ?? new Date().toISOString(),
+    updatedAt: payload.updated_at ?? payload.created_at ?? new Date().toISOString(),
+  };
+}
+
+export default function ContactsWorkspace({ contacts: initialContacts, segments: initialSegments, apiBase }: ContactsWorkspaceProps) {
   const [contacts, setContacts] = useState(initialContacts);
+  const [segments, setSegments] = useState(initialSegments);
   const [selectedId, setSelectedId] = useState(initialContacts[0]?.id ?? '');
   const [selected, setSelected] = useState<ContactSummary | null>(initialContacts[0] ?? null);
   const [form, setForm] = useState({ id: '', emailAddress: '', displayName: '', company: '', tags: '', notes: '' });
+  const [segmentForm, setSegmentForm] = useState({ id: '', name: '', description: '', matchMode: 'any' as 'any' | 'all', tags: '' });
   const [pending, setPending] = useState(false);
+  const [segmentPending, setSegmentPending] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [segmentFeedback, setSegmentFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedId) {
@@ -145,6 +196,11 @@ export default function ContactsWorkspace({ contacts: initialContacts, apiBase }
     active: contacts.filter((contact) => contact.clickCount > 0 || contact.replyCount > 0 || contact.conversionCount > 0).length,
   }), [contacts]);
 
+  const segmentStats = useMemo(() => ({
+    total: segments.length,
+    covered: segments.reduce((sum, segment) => sum + segment.contactCount, 0),
+  }), [segments]);
+
   function startNewContact() {
     setSelectedId('');
     setSelected(null);
@@ -184,6 +240,45 @@ export default function ContactsWorkspace({ contacts: initialContacts, apiBase }
       setFeedback(error instanceof Error ? error.message : 'Unable to save contact.');
     } finally {
       setPending(false);
+    }
+  }
+
+  async function saveSegment() {
+    setSegmentPending(true);
+    setSegmentFeedback(null);
+    try {
+      const response = await fetch(`${apiBase}/segments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: segmentForm.id || undefined,
+          name: segmentForm.name,
+          description: segmentForm.description,
+          match_mode: segmentForm.matchMode,
+          tags: segmentForm.tags.split(',').map((item) => item.trim()).filter(Boolean),
+        }),
+      });
+      const payload = (await response.json()) as { error?: string } & SegmentApiPayload;
+      if (!response.ok) {
+        throw new Error(payload.error ?? 'Unable to save segment.');
+      }
+      const next = normalizeSegment(payload);
+      setSegments((current) => {
+        const others = current.filter((segment) => segment.id !== next.id);
+        return [next, ...others];
+      });
+      setSegmentForm({
+        id: next.id,
+        name: next.name,
+        description: next.description,
+        matchMode: next.matchMode,
+        tags: next.tags.join(', '),
+      });
+      setSegmentFeedback('Segment saved.');
+    } catch (error) {
+      setSegmentFeedback(error instanceof Error ? error.message : 'Unable to save segment.');
+    } finally {
+      setSegmentPending(false);
     }
   }
 
@@ -236,6 +331,54 @@ export default function ContactsWorkspace({ contacts: initialContacts, apiBase }
             )}
           </div>
         </Panel>
+
+        <Panel title="Audience segments" kicker="Reusable contact targeting">
+          <div className="mb-5 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+              <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Saved segments</div>
+              <div className="mt-2 text-2xl font-semibold text-white">{segmentStats.total}</div>
+            </div>
+            <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+              <div className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Total matched contacts</div>
+              <div className="mt-2 text-2xl font-semibold text-white">{segmentStats.covered}</div>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {segments.length ? segments.map((segment) => (
+              <button
+                key={segment.id}
+                onClick={() => setSegmentForm({ id: segment.id, name: segment.name, description: segment.description, matchMode: segment.matchMode, tags: segment.tags.join(', ') })}
+                className="w-full rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-left transition hover:bg-white/[0.05]"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="text-base font-semibold text-white">{segment.name}</div>
+                    <div className="mt-1 text-sm text-slate-400">{segment.description || 'Tag-based reusable audience segment.'}</div>
+                  </div>
+                  <StatusPill label={`${segment.contactCount} contacts`} state={segment.contactCount ? 'healthy' : 'attention'} />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {segment.tags.map((tag) => (
+                    <span key={`${segment.id}-${tag}`} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs uppercase tracking-[0.18em] text-slate-300">
+                      {segment.matchMode}:{tag}
+                    </span>
+                  ))}
+                </div>
+                {segment.contactsPreview.length ? (
+                  <div className="mt-3 text-xs text-slate-400">
+                    Preview: {segment.contactsPreview.map((contact) => contact.displayName || contact.emailAddress).join(', ')}
+                  </div>
+                ) : (
+                  <div className="mt-3 text-xs text-amber-200/80">No contacts match yet. Add or retag contacts to populate this segment.</div>
+                )}
+              </button>
+            )) : (
+              <div className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4 text-sm text-slate-300/72">
+                No reusable segments yet. Create one from contact tags and use it in campaigns.
+              </div>
+            )}
+          </div>
+        </Panel>
       </div>
 
       <div className="space-y-6">
@@ -274,6 +417,35 @@ export default function ContactsWorkspace({ contacts: initialContacts, apiBase }
             {pending ? 'Saving...' : 'Save contact'}
           </button>
           {feedback ? <div className="mt-4 rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-200">{feedback}</div> : null}
+        </Panel>
+
+        <Panel title="Create segment" kicker="Tag-driven audience definition">
+          <div className="grid gap-4">
+            <label className="space-y-2 text-sm text-slate-300/78">
+              <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Name</span>
+              <input value={segmentForm.name} onChange={(event) => setSegmentForm((current) => ({ ...current, name: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" />
+            </label>
+            <label className="space-y-2 text-sm text-slate-300/78">
+              <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Description</span>
+              <input value={segmentForm.description} onChange={(event) => setSegmentForm((current) => ({ ...current, description: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" />
+            </label>
+            <label className="space-y-2 text-sm text-slate-300/78">
+              <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Match mode</span>
+              <select value={segmentForm.matchMode} onChange={(event) => setSegmentForm((current) => ({ ...current, matchMode: event.target.value as 'any' | 'all' }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none">
+                <option value="any">Any tag matches</option>
+                <option value="all">All tags required</option>
+              </select>
+            </label>
+            <label className="space-y-2 text-sm text-slate-300/78">
+              <span className="text-[0.62rem] uppercase tracking-[0.24em] text-slate-400">Tags</span>
+              <input value={segmentForm.tags} onChange={(event) => setSegmentForm((current) => ({ ...current, tags: event.target.value }))} className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none" placeholder="warm, founder, outbound" />
+            </label>
+          </div>
+
+          <button onClick={saveSegment} disabled={segmentPending} className="mt-5 rounded-[20px] border border-cyan-300/22 bg-cyan-300/12 px-5 py-3 text-sm font-medium text-white transition hover:bg-cyan-300/16 disabled:cursor-not-allowed disabled:opacity-60">
+            {segmentPending ? 'Saving segment...' : 'Save segment'}
+          </button>
+          {segmentFeedback ? <div className="mt-4 rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-200">{segmentFeedback}</div> : null}
         </Panel>
 
         <Panel title="Recent contact history" kicker="Message-linked outcomes">
